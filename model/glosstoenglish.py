@@ -16,6 +16,7 @@ class Translator(nn.Module):
         self.pos_encoding = PositionalEncoding(d_model, dropout, max_len)
 
         self.transformer = nn.Transformer(d_model, heads, num_encoders, num_decoders)
+        
         self.linear = nn.Linear(d_model, trg_vocab_size)
         self.softmax = nn.Softmax(dim=-1)
 
@@ -28,3 +29,14 @@ class Translator(nn.Module):
         
         # Get the probability vector
         return self.softmax(self.linear(out))
+    
+
+    def encode(self, src, src_mask):
+        src_pos = self.pos_encoding(self.src_embedding(src))
+        out = self.transformer.encoder(src, src_mask)
+        return out
+    
+    def decode(self, trg, trg_mask):
+        trg_pos = self.pos_encoding(self.trg_embedding(trg))
+        out = self.transformer.encoder(trg, trg_mask)
+        return out
