@@ -16,25 +16,7 @@ words_dir = Path(environ.get("WORD_LIBRARY_LOCATION") or "words/").resolve()
 if not words_dir.is_dir():
     words_dir.mkdir()
 
-frontend_dir = Path(environ.get("FRONTEND_BUNDLE_LOCATION") or "web-frontend/dist/").resolve()
-
-if not frontend_dir.is_dir():
-    print("Error: FRONTEND_BUNDLE_LOCATION is not set to a valid directory built by `npm run build`.")
-    exit(1)
-
-def load_page_html(name: str):
-    path: Path = frontend_dir.joinpath(name)
-    if path.is_file():
-        return path.read_text()
-    else:
-        print(f"Error: Expected a file named {name} within FRONTEND_BUNDLE_LOCATION")
-        exit(1)
-
-index_html = load_page_html("index.html")
-e2a_html = load_page_html("e2a/index.html")
-record_html = load_page_html("record/index.html")
-
-app = Flask(__name__, static_url_path="/_astro", static_folder=frontend_dir.joinpath("_astro"))
+app = Flask(__name__)
 
 mp_holistic = mp.solutions.holistic
 
@@ -53,7 +35,7 @@ def process_frames(cap):
 
             yield msgpack.packb((rh, lh, face))
 
-@app.route("/word/<string:word>")
+@app.route("/api/word/<string:word>")
 def rt_word(word: str):
     path = words_dir.joinpath(f"{word}.msgpack").resolve()
     if path.is_file():
@@ -61,25 +43,30 @@ def rt_word(word: str):
     else:
         return Response("Word not found", mimetype="text/plain"), 404
 
-@app.route("/mark", methods=["POST"])
+@app.route("/api/mark", methods=["POST"])
 def rt_mark():
     stream = request.data
     cap = iio.imiter(stream, plugin="pyav", extension=".webm")
     frames = process_frames(cap)
     return Response(frames, mimetype="application/x-msgpack")
 
-@app.route("/")
-def rt_index():
-    return Response(index_html, mimetype="text/html")
+cors_allow = environ.get("CORS_ORIGIN_ALLOW")
 
-@app.route("/e2a")
-def rt_e2a():
-    return Response(e2a_html, mimetype="text/html")
+@app.after_request
+def after_req(resp):
+    if cors_allow is not None: 
+        headers = {
+            "Access-Control-Allow-Origin": cors_allow,
+            "Access-Control-Allow-Headers": "*"
+        }
+        resp.headers.update(headers)
+    return resp
 
-@app.route("/record")
-def rt_record():
-    return Response(record_html, mimetype="text/html")
+port = environ.get("FLASK_PORT") or 5000
+
+def run_server():
+    app.run(port=port, debug=(environ.get("FLASK_DEBUG") or "0") == "1")
 
 if __name__ == "__main__":
-    app.run(debug=(environ.get("DEBUG") or "0") == "1")
+    run_server()
 

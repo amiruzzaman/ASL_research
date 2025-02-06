@@ -26,8 +26,11 @@ import { type WordData, type Frame, prepareCanvas, renderAsl, type TranslationRe
 
 const VIDEO_MIME = "video/webm";
 
+const backendHost = import.meta.env.PUBLIC_BACKEND_HOST ?? "";
+const markEndpoint = `${backendHost}/api/mark`;
+
 const processVideo = async (rawFrames: Blob[]): Promise<WordData | null> => {
-  const resp = await fetch("/mark", { 
+  const resp = await fetch(markEndpoint, { 
     method: "POST", 
     body: new Blob(rawFrames), 
     headers: { "Content-Type": VIDEO_MIME },

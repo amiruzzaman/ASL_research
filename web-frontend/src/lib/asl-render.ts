@@ -7,8 +7,11 @@ export type Hand = Vec3[];
 export type Frame = [Hand, Hand, Hand];
 export type WordData = Frame[];
 
+const backendEndpoint = import.meta.env.PUBLIC_BACKEND_HOST ?? "";
+const wordEndpoint = `${backendEndpoint}/api/word`
+
 const fetchWord = async (word: string): Promise<WordData | null> => {
-	const response = await fetch(`/word/${word}`);
+	const response = await fetch(`${wordEndpoint}/${word}`);
 	if (response.ok && response.body !== null) {
 		return decodeAsync(response.body) as Promise<WordData>;
 	} else if (response.status === 404) {

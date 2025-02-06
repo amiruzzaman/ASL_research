@@ -1,0 +1,7 @@
+dist
+result
+words
+.venv
+__pycache__
+*.pyc
+
