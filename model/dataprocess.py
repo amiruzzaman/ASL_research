@@ -63,26 +63,20 @@ def collate_fn(batch):
     
     return pad_sequence(x, batch_first=True, padding_value=2), pad_sequence(y, batch_first=True, padding_value=2)
 
-# Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
-print("Loading in Dataset...")
-aslg_dataset = load_dataset("achrafothman/aslg_pc12", split='train')
-gloss_set, text_set = zip(*[(pair["gloss"].strip(), pair["text"].strip()) for pair in aslg_dataset])
- 
-print("Building the vocab...")
-gloss_vocab, gloss_id = build_vocab(gloss_set)
-text_vocab, text_id = build_vocab(text_set)
 
-# Creating Custom ASL Dataset
-print("Creating custom ASL Dataset and Dataloader...")
-dataset = ASLDataset(gloss_set, text_set, gloss_vocab, text_vocab)
-dataloader = DataLoader(dataset, batch_size=5, collate_fn=collate_fn, shuffle=True)
+def get_data():
+    # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
+    print("Loading in Dataset...")
+    aslg_dataset = load_dataset("achrafothman/aslg_pc12", split='train')
+    gloss_set, text_set = zip(*[(pair["gloss"].strip(), pair["text"].strip()) for pair in aslg_dataset])
+    
+    print("Building the vocab...")
+    gloss_vocab, gloss_id = build_vocab(gloss_set)
+    text_vocab, text_id = build_vocab(text_set)
 
-# Fetches a sample from the batch and prints the gloss and token
-train_glosses, train_text = next(iter(dataloader))
-gloss = train_glosses[0]
-text = train_text[0] 
+    # Creating Custom ASL Dataset
+    print("Creating custom ASL Dataset and Dataloader...")
+    dataset = ASLDataset(gloss_set, text_set, gloss_vocab, text_vocab)
+    dataloader = DataLoader(dataset, batch_size=5, collate_fn=collate_fn, shuffle=True)
 
-print(f"Gloss: {[gloss_id[val.item()] for val in gloss]}")
-print(f"Gloss Tokens: {gloss}\n")
-print(f"Text: {[text_id[val.item()] for val in text]}")
-print(f"Text Tokens: {text}\n\n")
+    return dataloader, gloss_id, text_id
