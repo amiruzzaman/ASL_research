@@ -26,7 +26,7 @@ just dev
 If you don't have `just`, you can run the command directly.
 
 ```sh
-nix develop --command nix run .#_dev
+nix develop --command "mprocs --names 'Backend,Frontend' 'python src/web_backend/__init__.py' 'cd web-frontend; npm run dev'"
 ```
 
 ### Imperative
@@ -46,7 +46,7 @@ everything simply run `uv sync`.
 We use `npm` for Node dependencies, `cd` into `web-frontend` and run
 `npm install` to get everything installed.
 
-Now, you will need to run both the backend and frontend seperatly. First run
+Now, you will need to run both the backend and frontend separately. First run
 the backend.
 
 ```sh
@@ -68,6 +68,9 @@ output within `mprocs`.
 This is where you'll access the frontend site, it will communicate with the backend
 (running on port `5000`) via AJAX. In production these two webservers are
 expected to be unified by a reverse proxy.
+
+Both the frontend and backend are set up to reload on file change, double check
+any errors that may be appearing in the `mprocs` UI.
 
 ### Managing Dependencies
 
