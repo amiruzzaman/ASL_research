@@ -20,8 +20,10 @@ app = Flask(__name__)
 
 mp_holistic = mp.solutions.holistic
 
+
 def extract_results(landmarks):
     return [(res.x, res.y, res.z) for res in landmarks.landmark] if landmarks else None
+
 
 def process_frames(cap):
     with mp_holistic.Holistic() as holistic:
@@ -35,6 +37,7 @@ def process_frames(cap):
 
             yield msgpack.packb((rh, lh, face))
 
+
 @app.route("/api/word/<string:word>")
 def rt_word(word: str):
     path = words_dir.joinpath(f"{word}.msgpack").resolve()
@@ -43,6 +46,7 @@ def rt_word(word: str):
     else:
         return Response("Word not found", mimetype="text/plain"), 404
 
+
 @app.route("/api/mark", methods=["POST"])
 def rt_mark():
     stream = request.data
@@ -50,23 +54,27 @@ def rt_mark():
     frames = process_frames(cap)
     return Response(frames, mimetype="application/x-msgpack")
 
+
 cors_allow = environ.get("CORS_ORIGIN_ALLOW")
+
 
 @app.after_request
 def after_req(resp):
-    if cors_allow is not None: 
+    if cors_allow is not None:
         headers = {
             "Access-Control-Allow-Origin": cors_allow,
-            "Access-Control-Allow-Headers": "*"
+            "Access-Control-Allow-Headers": "*",
         }
         resp.headers.update(headers)
     return resp
 
+
 port = environ.get("FLASK_PORT") or 5000
+
 
 def run_server():
     app.run(port=port, debug=(environ.get("FLASK_DEBUG") or "0") == "1")
 
+
 if __name__ == "__main__":
     run_server()
-
