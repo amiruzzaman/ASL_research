@@ -23,7 +23,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    uv2nix_hammer_overrides.url = "github:TyberiusPrime/uv2nix_hammer_overrides";
+    # uv2nix_hammer_overrides.url = "github:TyberiusPrime/uv2nix_hammer_overrides";
   };
 
   outputs = inputs @ {
@@ -33,7 +33,7 @@
     uv2nix,
     pyproject-nix,
     pyproject-build-systems,
-    uv2nix_hammer_overrides,
+    # uv2nix_hammer_overrides,
   }:
     flakelight ./. {
       inherit inputs;

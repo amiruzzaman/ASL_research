@@ -14,8 +14,9 @@ run *CMD:
     nix develop --command {{CMD}}
 
 # Run an npm command within web-frontend
+[working-directory: 'web-frontend']
 npm *CMD:
-    cd web-frontend; just run npm {{CMD}}
+    nix develop --command npm {{CMD}}
 
 # Run a uv command for python dependency management
 uv *CMD:

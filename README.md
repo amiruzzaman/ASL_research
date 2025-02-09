@@ -7,6 +7,25 @@ Repository for ASL 2 English and English 2 ASL research.
 We use [just](https://github.com/casey/just#installation) to run commands.
 It isn't required but will contain shortcuts for the commands outlined in this readme.
 
+### Installing NPM Deps
+
+NPM Deps are still managed imperatively, so you need to install them manually.
+
+To do so use the `npm` just recipe
+
+```sh
+just npm i
+```
+
+...or cd manually and run install. You _will_ need `npm` installed on your
+host system for this to work.
+
+```
+cd web-frontend
+npm i
+cd ..
+```
+
 ### With Nix/Lix
 
 The easiest way to get set up is to [install Lix](https://lix.systems/install/).

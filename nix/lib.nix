@@ -6,12 +6,12 @@
   hacksForPkgs = pkgs: pkgs.callPackage inputs.pyproject-nix.build.hacks {};
   selectPy = pkgs: pkgs.python312;
 
-  hammerOverride = pkgs: pkgs.lib.composeExtensions (inputs.uv2nix_hammer_overrides.overrides pkgs) overlay;
+  # hammerOverride = pkgs: pkgs.lib.composeExtensions (inputs.uv2nix_hammer_overrides.overrides pkgs) overlay;
 
   pyOverride = pkgs: let
     hacks = hacksForPkgs pkgs;
   in
-    pkgs.lib.composeExtensions (hammerOverride pkgs) (_final: prev: {
+    pkgs.lib.composeExtensions overlay (_final: prev: {
       opencv-contrib-python = hacks.nixpkgsPrebuilt {
         from = pkgs.python3Packages.opencv4;
         prev = prev.opencv-contrib-python;
