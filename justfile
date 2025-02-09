@@ -3,7 +3,7 @@ _default:
 
 # Run the development server in mprocs
 dev:
-    just run "mprocs --names 'Backend,Frontend' 'python src/web_backend/__init__.py' 'cd web-frontend; npm run dev'"
+    just run "mprocs --names 'Frontend,Backend' 'cd web-frontend; npm run dev' 'python src/web_backend/__init__.py'"
 
 # Run a development shell
 shell:
@@ -20,5 +20,5 @@ npm *CMD:
 
 # Run a uv command for python dependency management
 uv *CMD:
-    just run uv {{CMD}}
+    nix develop --command uv {{CMD}}
 

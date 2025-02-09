@@ -20,7 +20,7 @@ just npm i
 ...or cd manually and run install. You _will_ need `npm` installed on your
 host system for this to work.
 
-```
+```sh
 cd web-frontend
 npm i
 cd ..
