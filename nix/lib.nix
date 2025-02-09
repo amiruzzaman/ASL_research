@@ -1,8 +1,4 @@
-{
-  inputs,
-  outputs,
-  ...
-}: let
+{inputs, ...}: let
   workspace = inputs.uv2nix.lib.workspace.loadWorkspace {workspaceRoot = ../.;};
   overlay = workspace.mkPyprojectOverlay {
     sourcePreference = "wheel";
@@ -14,10 +10,6 @@
     hacks = hacksForPkgs pkgs;
   in
     pkgs.lib.composeExtensions overlay (_final: prev: {
-      mediapipe = hacks.nixpkgsPrebuilt {
-        from = pkgs.mediapipe;
-        prev = prev.mediapipe;
-      };
       torch = hacks.nixpkgsPrebuilt {
         from = pkgs.python312Packages.torchWithoutCuda;
         prev = prev.torch.overrideAttrs (old: {
@@ -38,7 +30,7 @@ in {
         targetPlatform =
           pkgs.stdenv.targetPlatform
           // {
-            darwinSdkVersion = "10.7";
+            darwinSdkVersion = "12.0";
           };
       };
     })
