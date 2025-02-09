@@ -35,7 +35,7 @@ class ASLDataset(Dataset):
         
         return gloss_tokens, text_tokens
 
-def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>"]):
+def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"]):
     nlp = spacy.blank("en")
     count = Counter()
 
@@ -64,7 +64,7 @@ def collate_fn(batch):
     return pad_sequence(x, batch_first=True, padding_value=2), pad_sequence(y, batch_first=True, padding_value=2)
 
 
-def get_data():
+def get_data(batch_size):
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
     aslg_dataset = load_dataset("achrafothman/aslg_pc12", split='train')
@@ -77,6 +77,6 @@ def get_data():
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...")
     dataset = ASLDataset(gloss_set, text_set, gloss_vocab, text_vocab)
-    dataloader = DataLoader(dataset, batch_size=5, collate_fn=collate_fn, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
 
-    return dataloader, gloss_id, text_id
+    return dataloader, gloss_vocab, gloss_id, text_vocab, text_id

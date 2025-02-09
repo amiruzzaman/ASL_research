@@ -4,7 +4,7 @@ import torch
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, drop_p=0.1, max_len=1000):
         super(PositionalEncoding, self).__init__()
-        self.dropout = self.dropout(p=drop_p)
+        self.dropout = nn.Dropout(p=drop_p)
     
         # Create positional encoding matrix
         # max_len represents the maximum length a sequence of tokens can be
