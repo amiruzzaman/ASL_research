@@ -11,10 +11,10 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def beam_search():
     pass
 
-def greedy_decode():
-    pass
+def greedy_decode(sequence: torch.tensor, model: Translator, src_vocab: dict, trg_vocab: dict):
+    memory = model.encode(sequence, None)
 
-def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
+def train(model, data, optimizer, criterion, src_vocab: dict, trg_vocab: dict):
     # Set model to training mode 
     model.train(mode=True)
     
@@ -26,7 +26,7 @@ def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
 
         # Excluding the last element because the last element does not have any tokens to predict
         trg_input = trg[:, :-1]
-
+            
         # Create the masks for the source and target
         src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg, trg_vocab["<pad>"])
 
@@ -71,7 +71,7 @@ def create_mask(src, trg, pad_idx):
 
 def generate_square_subsequent_mask(size):
     mask = (torch.triu(torch.ones((size, size), device=DEVICE)) == 1)
-    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    mask = mask.float().masked_fill(mask == 0, -torch.inf).masked_fill(mask == 1, float(0.0))
     return mask
 
 def main():
@@ -79,8 +79,8 @@ def main():
 
     # Creating the translation (Transformer) model
     model = Translator(len(gloss_vocab), len(text_vocab), 512, 8, 2, 2).to(DEVICE)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam()
+    criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"])
+    optimizer = optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-9)
 
 if __name__ == "__main__":
     main()

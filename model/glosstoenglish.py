@@ -3,8 +3,29 @@ import torch.nn as nn
 from positionalencoding import PositionalEncoding
 
 class Translator(nn.Module):
-    def __init__(self, src_vocab_size, trg_vocab_size, d_model, heads, num_encoders=1, num_decoders=1, 
-                 dropout=0.1, max_len=1000, activation="relu"):
+    def __init__(self, src_vocab_size, trg_vocab_size, d_model=512, heads=8, num_encoders=1, num_decoders=1, dropout=0.1, max_len=1000, activation="relu"):
+        """
+        Creates the translator nn module.
+
+        Converts the source and target token sequences (Batch Size, Sequence Size) to their embedding tensors (Batch Size, Sequence Size, d_model).          
+        Feeds them through the translator model.
+
+        Parameters:
+            src_vocab_size: The size of the source sequence's vocabulary
+            trg_vocab_size: The size of the target sequence's vocabulary
+
+            d_model: The dimensions of the embedding vectors
+            heads: The total number of heads during multi-headed attention
+
+            num_encoders: The number of encoders
+            num_decoders: The number of decoders
+
+            dropout: The probability of nodes that are dropped during training
+            max_len: The largest length a sequence can be
+
+            activation: The activation function for the layers in the model        
+        """
+
         super(Translator, self).__init__()
 
         # Embedding layers for the source and target inputs
@@ -25,8 +46,8 @@ class Translator(nn.Module):
         into the translation model to retrieve a probability distribution of trg_vocal_size possible outcomes.
         
         Parameters:
-            src: A batch containing sequences of ASL glosses. 
-            trg: A batch containing sequences of English text.  
+            src: A batch containing sequences of ASL glosses
+            trg: A batch containing sequences of English text
             
             src_mask: A matrix for the source sequences that masks out future elements
             trg_mask: A matrix for the target sequences that masks out future elements
@@ -45,7 +66,7 @@ class Translator(nn.Module):
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
 
         # Feed the source and target embedding matrices into the transformer model
-        out = self.transformer(src, trg, src_mask, trg_mask, None, src_padding_mask, trg_padding_mask, trg_padding_mask)
+        out = self.transformer(src, trg, src_mask, trg_mask, None, src_padding_mask, trg_padding_mask, trg_padding_mask, memory_padding_mask)
 
         # Feeds the output of the decoders into a linear function that output a vector of size trg_vocal_size 
         # and then applys the softmax activation function on it to receive a probability distribution for each sequence in the batch
@@ -64,6 +85,7 @@ class Translator(nn.Module):
         Returns:
             A tensor (Batch, Sequence Size, Number of expected features) 
         """
+
         src_pos = self.pos_encoding(self.src_embedding(src))
         out = self.transformer.encoder(src, src_mask)
 
@@ -84,5 +106,5 @@ class Translator(nn.Module):
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
         out = self.transformer.decoder(trg, memory, trg_mask)
 
-        return out
+        return self.softmax(self.linear(out))
         
