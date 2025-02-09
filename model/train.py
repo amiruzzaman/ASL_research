@@ -11,10 +11,27 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def beam_search():
     pass
 
-def greedy_decode(sequence: torch.tensor, model: Translator, src_vocab: dict, trg_vocab: dict):
-    memory = model.encode(sequence, None)
+def greedy_decode(src, src_mask, model, src_vocab, trg_vocab, max_len=1000):
+    src = src.unsqueeze(0).to(DEVICE)
+    src_mask = src.unsqueeze(0).to(DEVICE)
 
-def train(model, data, optimizer, criterion, src_vocab: dict, trg_vocab: dict):
+    memory = model.encode(src, src_mask)
+    sequence = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(DEVICE)
+
+    for _ in range(max_len):
+        mask = generate_square_subsequent_mask(sequence.shape[-1])
+        out = model.decode(sequence, mask, memory)
+
+        predicted = torch.argmax(out, dim=2)
+        next_word = predicted[-1]
+
+        sequence = torch.cat([sequence, torch.ones(1, 1).fill_(next_word).type(torch.long).to(DEVICE)], dim=1)
+        
+        if next_word == trg_vocab["<eos>"]:
+            break
+
+
+def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
     # Set model to training mode 
     model.train(mode=True)
     
@@ -26,7 +43,7 @@ def train(model, data, optimizer, criterion, src_vocab: dict, trg_vocab: dict):
 
         # Excluding the last element because the last element does not have any tokens to predict
         trg_input = trg[:, :-1]
-            
+
         # Create the masks for the source and target
         src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg, trg_vocab["<pad>"])
 
