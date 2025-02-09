@@ -34,9 +34,12 @@ class Translator(nn.Module):
     def encode(self, src, src_mask):
         src_pos = self.pos_encoding(self.src_embedding(src))
         out = self.transformer.encoder(src, src_mask)
+
         return out
     
-    def decode(self, trg, trg_mask):
+    def decode(self, trg, memory, trg_mask):
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
-        out = self.transformer.encoder(trg, trg_mask)
+        out = self.transformer.decoder(trg, memory, trg_mask)
+
         return out
+        

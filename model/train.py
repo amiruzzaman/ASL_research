@@ -1,7 +1,7 @@
 from dataprocess import get_data
 from glosstoenglish import Translator
 
-def train(model, data):
+def train(model, data, optimizer, criterion):
     pass
 
 def main():
@@ -12,7 +12,7 @@ def main():
     gloss = train_glosses[0]
     text = train_text[0] 
     
-    model = Translator()
+    #model = Translator()
     print(f"Gloss: {[gloss_id[val.item()] for val in gloss]}")
     print(f"Gloss Tokens: {gloss}\n")
     print(f"Text: {[text_id[val.item()] for val in text]}")
