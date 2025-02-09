@@ -25,18 +25,18 @@ class Translator(nn.Module):
         into the translation model to retrieve a probability distribution of trg_vocal_size possible outcomes.
         
         Parameters:
-            src (Tensor): A batch containing sequences of ASL glosses. 
-            trg (Tensor): A batch containing sequences of English text.  
+            src: A batch containing sequences of ASL glosses. 
+            trg: A batch containing sequences of English text.  
             
-            src_mask (Tensor): A matrix for the source sequences that masks out future elements during self attention
-            trg_mask (Tensor): A matrix for the target sequences that masks out future elements during self attention
+            src_mask: A matrix for the source sequences that masks out future elements
+            trg_mask: A matrix for the target sequences that masks out future elements
 
-            src_padding_mask (Tensor): A matrix for the source sequences that masks out padding tokens during self attention
-            trg_padding_mask (Tensor): A matrix for the target sequences that masks out padding tokens elements during self attention
+            src_padding_mask: A matrix for the source sequences that masks out padding tokens
+            trg_padding_mask: A matrix for the target sequences that masks out padding tokens elements
 
         Returns:
-            Tensor: A tensor containing vectors that represents a probability distribution of trg_vocal_size possible outcomes
-            in each row.
+            A tensor (Batch, Sequence size, Target Vocab Size) containing vectors that represents 
+            a probability distribution of trg_vocal_size possible outcomes in each row.
         """
 
         # Turn the list of tokens (Batch, Sequence Size) into its embedding vectors
@@ -53,12 +53,34 @@ class Translator(nn.Module):
     
 
     def encode(self, src, src_mask):
+        """
+        Feeds the source sequence along with its mask into the encoder to retrieve the fixed length encoding vector
+        used for memory during multiheaded attention in the decoder
+
+        Parameters:
+            src: The source sequence (Batch, Sequence Size)
+            src_mask: The look ahead mask used to mask out future words during encoding 
+
+        Returns:
+            A tensor (Batch, Sequence Size, Number of expected features) 
+        """
         src_pos = self.pos_encoding(self.src_embedding(src))
         out = self.transformer.encoder(src, src_mask)
 
         return out
     
     def decode(self, trg, memory, trg_mask):
+        """
+        Feeds the target sequence along with its mask and memory created from the encoders
+
+        Parameters:
+            trg: The target sequence (Batch, Sequence Size)
+            trg_mask: The look ahead mask used to mask out future words during decoder 
+        
+        Returns:
+            A tensor (Batch, Sequence Size, Number of expected features) 
+        """
+
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
         out = self.transformer.decoder(trg, memory, trg_mask)
 

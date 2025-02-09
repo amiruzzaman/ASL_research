@@ -24,7 +24,7 @@ def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
         src = src.to(DEVICE)
         trg = trg.to(DEVICE)
 
-        # Excluding the last element because the last element does not have any next token
+        # Excluding the last element because the last element does not have any tokens to predict
         trg_input = trg[:, :-1]
 
         # Create the masks for the source and target
@@ -35,7 +35,7 @@ def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
         # instead of the model's output in the prior timestep
         out = model(src, trg_input, src_mask, trg_mask, src_padding_mask, trg_padding_mask)
 
-        # For the criterion function to work, we have to concatenate all the batches together
+        # For the criterion function to work, we have to concatenate all the batches together for it to work
         # The shape of the tensor will turn from (Batch, Sequence Size, Target Vocab Size) 
         # to (Batch * Sequence Size, Target Vocab Size)
         actual = out.reshape(-1, out.shape[-1])
@@ -56,8 +56,8 @@ def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
 
 def create_mask(src, trg, pad_idx):
     # Get sequence length
-    src_seq_len = src.shape[0]
-    tgt_seq_len = trg.shape[0]
+    src_seq_len = src.shape[1]
+    tgt_seq_len = trg.shape[1]
 
     # Generate the mask
     tgt_mask = generate_square_subsequent_mask(tgt_seq_len, DEVICE)
@@ -78,7 +78,7 @@ def main():
     data, gloss_vocab, gloss_id, text_vocab, text_id = get_data(64)
 
     # Creating the translation (Transformer) model
-    model = Translator(len(gloss_vocab), len(text_vocab), 128, 8, 2, 2).to(DEVICE)
+    model = Translator(len(gloss_vocab), len(text_vocab), 512, 8, 2, 2).to(DEVICE)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam()
 
