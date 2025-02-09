@@ -25,7 +25,7 @@ def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
         trg = trg.to(DEVICE)
 
         # Excluding the last element because the last element does not have any next token
-        trg_input = trg[:-1, :]
+        trg_input = trg[:, :-1]
 
         # Create the masks for the source and target
         src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg, trg_vocab["<pad>"])
@@ -39,7 +39,7 @@ def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
         # The shape of the tensor will turn from (Batch, Sequence Size, Target Vocab Size) 
         # to (Batch * Sequence Size, Target Vocab Size)
         actual = out.reshape(-1, out.shape[-1])
-        expected = trg[1:].reshape(-1)
+        expected = trg[:, 1:].reshape(-1)
         
         # We zero the gradients of the model, calculate the total loss of the sample
         # Then compute the gradient vector for the model over the loss
@@ -64,13 +64,13 @@ def create_mask(src, trg, pad_idx):
     src_mask = torch.zeros((src_seq_len, src_seq_len),device=DEVICE).type(torch.bool)
 
     # Overlay the mask over the original input
-    src_padding_mask = (src == pad_idx).transpose(0, 1)
-    tgt_padding_mask = (trg == pad_idx).transpose(0, 1)
+    src_padding_mask = (src == pad_idx)
+    tgt_padding_mask = (trg == pad_idx)
     return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
 
 
 def generate_square_subsequent_mask(size):
-    mask = (torch.triu(torch.ones((size, size), device=DEVICE)) == 1).transpose(0, 1)
+    mask = (torch.triu(torch.ones((size, size), device=DEVICE)) == 1)
     mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
     return mask
 
