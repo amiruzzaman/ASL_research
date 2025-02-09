@@ -35,7 +35,8 @@ class Translator(nn.Module):
         # Positional encodings for the embedding vectors
         self.pos_encoding = PositionalEncoding(d_model, dropout, max_len)
 
-        self.transformer = nn.Transformer(d_model, heads, num_encoders, num_decoders)
+        self.transformer = nn.Transformer(d_model=d_model, nhead=heads, num_encoder_layers=num_encoders, 
+            num_decoder_layers=num_decoders, dropout=dropout, activation=activation, batch_first=True)
         
         self.linear = nn.Linear(d_model, trg_vocab_size)
         self.softmax = nn.Softmax(dim=-1)
@@ -46,14 +47,14 @@ class Translator(nn.Module):
         into the translation model to retrieve a probability distribution of trg_vocal_size possible outcomes.
         
         Parameters:
-            src: A batch containing sequences of ASL glosses
-            trg: A batch containing sequences of English text
+            src: A batch containing sequences of ASL glosses (Batch, Sequence)
+            trg: A batch containing sequences of English text (Batch, Sequence)
             
-            src_mask: A matrix for the source sequences that masks out future elements
-            trg_mask: A matrix for the target sequences that masks out future elements
+            src_mask: A matrix for the source sequences that masks out future elements (Batch, Sequence, Sequence)
+            trg_mask: A matrix for the target sequences that masks out future elements (Batch, Sequence, Sequence)
 
-            src_padding_mask: A matrix for the source sequences that masks out padding tokens
-            trg_padding_mask: A matrix for the target sequences that masks out padding tokens elements
+            src_padding_mask: A matrix for the source sequences that masks out padding tokens (Batch, Sequence)
+            trg_padding_mask: A matrix for the target sequences that masks out padding tokens elements (Batch, Sequence)
 
         Returns:
             A tensor (Batch, Sequence size, Target Vocab Size) containing vectors that represents 

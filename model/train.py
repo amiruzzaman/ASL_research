@@ -12,23 +12,32 @@ def beam_search():
     pass
 
 def greedy_decode(src, src_mask, model, src_vocab, trg_vocab, max_len=1000):
+    # Convert the sequences from (Sequence) to (Batch, Sequence)
     src = src.unsqueeze(0).to(DEVICE)
     src_mask = src.unsqueeze(0).to(DEVICE)
 
+    # Feed the source sequence and its mask into the transformer's encoder
     memory = model.encode(src, src_mask)
+
+    # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
     sequence = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(DEVICE)
 
     for _ in range(max_len):
         mask = generate_square_subsequent_mask(sequence.shape[-1])
+
+        # Feeds the target and retrieves a vector (Batch, Sequence Size, Target Vocab Size)
         out = model.decode(sequence, mask, memory)
 
         predicted = torch.argmax(out, dim=2)
         next_word = predicted[-1]
 
+        # Concatenate the predicted token to the output sequence
         sequence = torch.cat([sequence, torch.ones(1, 1).fill_(next_word).type(torch.long).to(DEVICE)], dim=1)
-        
+
         if next_word == trg_vocab["<eos>"]:
             break
+
+    return sequence
 
 
 def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
@@ -101,3 +110,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
