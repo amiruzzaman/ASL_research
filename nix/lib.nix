@@ -12,8 +12,12 @@
     hacks = hacksForPkgs pkgs;
   in
     pkgs.lib.composeExtensions (hammerOverride pkgs) (_final: prev: {
+      opencv-contrib-python = hacks.nixpkgsPrebuilt {
+        from = pkgs.python3Packages.opencv4;
+        prev = prev.opencv-contrib-python;
+      };
       torch = hacks.nixpkgsPrebuilt {
-        from = pkgs.python312Packages.torchWithoutCuda;
+        from = pkgs.python3Packages.torchWithoutCuda;
         prev = prev.torch.overrideAttrs (old: {
           passthru =
             old.passthru
