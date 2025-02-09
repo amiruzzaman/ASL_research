@@ -10,7 +10,11 @@ dependencies = [
     "matplotlib>=3.10.0",
     "mediapipe>=0.10.21",
     "msgpack>=1.1.0",
+    "numpy>=1.26.4",
     "python-dotenv>=1.0.1",
+    "scipy>=1.15.1",
+    "spacy>=3.8.4",
+    "torch>=2.6.0",
 ]
 
 [project.scripts]

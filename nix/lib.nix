@@ -7,14 +7,28 @@
   overlay = workspace.mkPyprojectOverlay {
     sourcePreference = "wheel";
   };
-  hacks = pkgs: pkgs.callPackage inputs.pyproject-nix.build.hacks {};
+  hacksForPkgs = pkgs: pkgs.callPackage inputs.pyproject-nix.build.hacks {};
   selectPy = pkgs: pkgs.python312;
-  pyOverride = pkgs: _final: prev: {
-    mediapipe = (hacks pkgs).nixpkgsPrebuilt {
-      from = outputs.packages.${pkgs.system}.mediapipe;
-      prev = prev.mediapipe;
-    };
-  };
+
+  pyOverride = pkgs: let
+    hacks = hacksForPkgs pkgs;
+  in
+    pkgs.lib.composeExtensions overlay (_final: prev: {
+      mediapipe = hacks.nixpkgsPrebuilt {
+        from = pkgs.mediapipe;
+        prev = prev.mediapipe;
+      };
+      torch = hacks.nixpkgsPrebuilt {
+        from = pkgs.python312Packages.torchWithoutCuda;
+        prev = prev.torch.overrideAttrs (old: {
+          passthru =
+            old.passthru
+            // {
+              dependencies = pkgs.lib.filterAttrs (name: _: ! pkgs.lib.hasPrefix "nvidia" name) old.passthru.dependencies;
+            };
+        });
+      };
+    });
 in {
   inherit workspace;
   pythonSetForPkgs = pkgs:
@@ -32,9 +46,7 @@ in {
     (
       pkgs.lib.composeManyExtensions [
         inputs.pyproject-build-systems.overlays.default
-        overlay
         (pyOverride pkgs)
-        (_final: prev: {pythonPkgsBuildHost = prev.pythonPkgsBuildHost.overrideScope (pyOverride pkgs);})
       ]
     );
 }

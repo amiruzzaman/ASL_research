@@ -22,6 +22,8 @@
       inputs.uv2nix.follows = "uv2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # uv2nix_hammer_overrides.url = "github:TyberiusPrime/uv2nix_hammer_overrides";
   };
 
   outputs = inputs @ {
@@ -31,14 +33,20 @@
     uv2nix,
     pyproject-nix,
     pyproject-build-systems,
+    # uv2nix_hammer_overrides,
   }:
     flakelight ./. {
       inherit inputs;
+      pname = "asl-research";
       systems = ["x86_64-linux" "x86_64-darwin" "aarch64-darwin"];
       formatters = {
         "*.nix" = "alejandra .";
         "*.py" = "black .";
         "*.{ts,css,astro,json}" = "prettier --write web-frontend";
+      };
+      nixpkgs.config = {
+        cudaSupport = false;
+        allowUnfree = true;
       };
     };
 }
