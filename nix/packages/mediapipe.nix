@@ -1,4 +1,5 @@
 {
+  lib,
   python3Packages,
   opencv,
   bazel,
@@ -53,9 +54,11 @@ python3Packages.buildPythonPackage rec {
     sentencepiece
   ];
 
-  nativeBuildInputs = [
-    autoPatchelfHook
-  ];
+  nativeBuildInputs =
+    []
+    ++ lib.optionals (! stdenv.hostPlatform.isDarwin) [
+      autoPatchelfHook
+    ];
 
   propagatedBuildInputs = [
     opencv

@@ -14,10 +14,10 @@
     hacks = hacksForPkgs pkgs;
   in
     pkgs.lib.composeExtensions overlay (_final: prev: {
-      # mediapipe = hacks.nixpkgsPrebuilt {
-      #   from = pkgs.mediapipe;
-      #   prev = prev.mediapipe;
-      # };
+      mediapipe = hacks.nixpkgsPrebuilt {
+        from = pkgs.mediapipe;
+        prev = prev.mediapipe;
+      };
       torch = hacks.nixpkgsPrebuilt {
         from = pkgs.python312Packages.torchWithoutCuda;
         prev = prev.torch.overrideAttrs (old: {
