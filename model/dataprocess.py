@@ -10,6 +10,17 @@ import spacy
 
 class ASLDataset(Dataset):
     def __init__(self, gloss_set, text_set, gloss_vocab, text_vocab):
+        """
+        Custom dataset class for the ASLG-PC12 dataset
+
+        Parameters:
+            gloss_set: A dictionary that maps a token for an ASL word to a string
+            text_set: A dictionary that maps a token for an English word to a string
+
+            gloss_vocab: A dictionary that maps words in the gloss vocab to a numerical token
+            text_vocab: A dictionary that maps words in the English vocab to a numerical token
+        """
+        
         self.gloss_set = gloss_set
         self.text_set = text_set
 
@@ -22,6 +33,18 @@ class ASLDataset(Dataset):
         return len(self.gloss_set)
     
     def __getitem__(self, index):
+        """
+        For a sample in the dictionary, we retrieve the random ASL gloss and English sentence in string form
+        Then using their respective vocabs, we convert them into a sequence of tokens with an <SOS> token added to
+        the start and an <EOS> token added to the end.
+
+        Parameters:
+            index: The location of the sample in the batch
+        
+        Returns:
+            Two sequence of tokens for the glosses and sentences with an <SOS> token added to the start 
+            and an <EOS> token added to the end.
+        """
         gloss = self.gloss_set[index]
         text = self.text_set[index]
 
@@ -36,6 +59,18 @@ class ASLDataset(Dataset):
         return gloss_tokens, text_tokens
 
 def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"]):
+    """
+    Builds the vocabulary for a dataset by splitting each sentence by their words and then
+    Create two dictionaries, id_to_word and word_to_id.
+
+    Parameters:
+        dataset: The data that is processed into a vocabulary dictionary
+        special: Special tokens that are added to the beginning of the vocabulary
+
+    Returns:
+        A dictionary that maps each word in the dataset to their token id and another dictionary
+        that does the opposite
+    """
     nlp = spacy.blank("en")
     count = Counter()
 
@@ -57,6 +92,15 @@ def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"]):
 
 # Processes the list of samples in the batch so that all sample sentences are the same length
 def collate_fn(batch):
+    """
+    Processes the list of samples in the batch so that all sample sentences are the same length.
+
+    Parameter: 
+        batch: A batch in the dataloader
+    
+    Returns:
+        The batch with both sequences padded 
+    """
     x, y = zip(*batch)
     x = [torch.tensor(val) for val in x]
     y = [torch.tensor(val) for val in y]
@@ -65,6 +109,16 @@ def collate_fn(batch):
 
 
 def get_data(batch_size):
+    """
+    Loads the ASLG-PC12 Dataset and creates a Dataloader for it.
+
+    Parameters:
+        batch_size: How many items each batch will contain
+
+    Returns:
+        A dataloader that contains the ASL glosses and the English sentences
+    """
+
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
     aslg_dataset = load_dataset("achrafothman/aslg_pc12", split='train')
