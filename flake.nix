@@ -42,7 +42,7 @@
       formatters = {
         "*.nix" = "alejandra .";
         "*.py" = "black .";
-        "*.{ts,css,astro,json}" = "prettier --write web-frontend";
+        "*.{ts,css,astro,json,mjs}" = "prettier --write web-frontend";
       };
       nixpkgs.config = {
         cudaSupport = false;

@@ -1,25 +1,81 @@
 ---
-export type Props = {
+import type { HTMLAttributes } from "astro/types";
+import "../styles/style.css";
+
+export interface Props extends HTMLAttributes<"main"> {
   title: string;
-};
+}
 
-const { title, ...rest } = Astro.props;
-
+const { title, class: className, ...rest } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title}</title>
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    {/* TODO: Not too concerned with meta stuff rn, but should probably come back later. */}
+  </head>
 
-<body class="h-screen p-5 container flex flex-col gap-2 justify-center align-center m-auto md:max-w-3xl">
-  <slot /> 
-</body>
+  <body>
+    <header>
+      <nav class="container flex-row-responsive">
+        <a href="/">ASL Research</a>
+        <a href="/e2a">English To ASL</a>
+        <a href="/record">Record ASL</a>
+        <a href="/a2e">ASL To English</a>
+      </nav>
+    </header>
+    <main class:list={["container", className]} {...rest}>
+      <h1>{title}</h1>
+      <slot />
+    </main>
+    <footer>
+      <a target="_blank" href="https://github.com/amiruzzaman/ASL_research">GitHub</a>
+    </footer>
+  </body>
 </html>
 
-<style is:global>
-  @import "tailwindcss";
+<style>
+  body {
+    background-color: var(--background);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    width: 100vw;
+  }
+
+  header {
+    border-bottom: solid 2px var(--accent-100);
+  }
+
+  nav {
+    padding: var(--2) 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--3);
+  }
+
+  nav > a:first-child {
+    font-size: var(--2);
+    font-weight: bold;
+  }
+
+  main {
+    flex-grow: 1;
+  }
+
+  footer {
+    display: flex;
+    flex-direction: row;
+    gap: var(--3);
+    padding: var(--2);
+    border-top: solid 2px var(--accent-100);
+    justify-content: center;
+  }
 </style>

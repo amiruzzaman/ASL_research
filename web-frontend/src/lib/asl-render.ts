@@ -17,9 +17,7 @@ const fetchWord = async (word: string): Promise<WordData | null> => {
   } else if (response.status === 404) {
     return null;
   } else {
-    console.error(
-      `Backend returned ${response.status}: ${await response.text()}`,
-    );
+    console.error(`Backend returned ${response.status}: ${await response.text()}`);
     return null;
   }
 };
@@ -62,6 +60,7 @@ export type ThreeContext = {
   render: THREE.WebGLRenderer;
   scene: THREE.Scene;
   cam: THREE.Camera;
+  anim?: AnimationContext;
 };
 
 const initThree = (parent: HTMLElement): ThreeContext => {
@@ -70,7 +69,7 @@ const initThree = (parent: HTMLElement): ThreeContext => {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 2000);
 
-  const renderer = new THREE.WebGLRenderer();
+  const renderer = new THREE.WebGLRenderer({ alpha: true });
   renderer.setSize(width, height);
   parent.appendChild(renderer.domElement);
   camera.position.z = 0.75;
@@ -85,11 +84,7 @@ const fixPos = ([x, y, z]: Vec3): [number, number, number] => {
 
 const basicMat = (color: number) => new THREE.MeshBasicMaterial({ color });
 
-const createPoint = (
-  scene: THREE.Scene,
-  pos: Vec3,
-  mat: THREE.MeshBasicMaterial,
-) => {
+const createPoint = (scene: THREE.Scene, pos: Vec3, mat: THREE.MeshBasicMaterial) => {
   const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.006), mat);
   scene.add(sphere);
   sphere.position.set(...fixPos(pos));
@@ -143,10 +138,7 @@ const connectPoints = (
 };
 
 const updateLine = (line: THREE.Line, newA: Vec3, newB: Vec3) => {
-  line.geometry.setFromPoints([
-    new THREE.Vector3(...newA),
-    new THREE.Vector3(...newB),
-  ]);
+  line.geometry.setFromPoints([new THREE.Vector3(...newA), new THREE.Vector3(...newB)]);
 };
 
 type RenderHand = [THREE.Mesh[], THREE.Line[]];
@@ -154,12 +146,12 @@ type RenderHand = [THREE.Mesh[], THREE.Line[]];
 const fallBackHand = [
   ...Array(21)
     .keys()
-    .map((_) => [5, 5, 5]),
+    .map((_) => [5, 5, 5] as Vec3),
 ];
 const fallBackFace = [
   ...Array(468)
     .keys()
-    .map((_) => [5, 5, 5]),
+    .map((_) => [5, 5, 5] as Vec3),
 ];
 
 const createHand = (
@@ -170,29 +162,16 @@ const createHand = (
 ): RenderHand => [
   hand.map((p) => createPoint(scene, p, basicMat(color))),
   connectArray.map(([pointA, pointB]) =>
-    connectPoints(
-      scene,
-      fixPos(hand[pointA]),
-      fixPos(hand[pointB]),
-      lineMat(color),
-    ),
+    connectPoints(scene, fixPos(hand[pointA]), fixPos(hand[pointB]), lineMat(color)),
   ),
 ];
 
-const updateHand = (
-  currentHand: RenderHand,
-  newHand: Hand,
-  connectArray: [number, number][],
-) => {
+const updateHand = (currentHand: RenderHand, newHand: Hand, connectArray: [number, number][]) => {
   (newHand ?? []).forEach((pos, i) => {
     updatePoint(currentHand[0][i], pos);
   });
   currentHand[1].forEach((line, i) => {
-    updateLine(
-      line,
-      fixPos(newHand[connectArray[i][0]]),
-      fixPos(newHand[connectArray[i][1]]),
-    );
+    updateLine(line, fixPos(newHand[connectArray[i][0]]), fixPos(newHand[connectArray[i][1]]));
   });
 };
 
@@ -203,7 +182,7 @@ const deleteHand = (scene: THREE.Scene, hand: RenderHand) => {
 
 const createScene = (
   scene: THREE.Scene,
-  [lh, rh, f]: Frame,
+  [lh, rh, f]: Frame | [null, null, null],
 ): [RenderHand, RenderHand, RenderHand] => [
   createHand(scene, lh ?? fallBackHand, 0x00ff00, lineConnections),
   createHand(scene, rh ?? fallBackHand, 0x0000ff, lineConnections),
@@ -219,10 +198,7 @@ const updateScene = (
   updateHand(currentF, newF ?? fallBackFace, []);
 };
 
-const deleteScene = (
-  scene: THREE.Scene,
-  [lh, rh, f]: [RenderHand, RenderHand, RenderHand],
-) => {
+const deleteScene = (scene: THREE.Scene, [lh, rh, f]: [RenderHand, RenderHand, RenderHand]) => {
   deleteHand(scene, lh);
   deleteHand(scene, rh);
   deleteHand(scene, f);
@@ -247,11 +223,13 @@ const prepareAnim = (
     currentScene: createScene(ctx.scene, [null, null, null]),
   };
 
+  ctx.anim = animContext;
+
   const wordLen = req.words.length;
   const waitTime = 300;
 
   // == MAIN ANIMATION LOOP ==
-  return () => {
+  const mainLoop = () => {
     if (animContext.paused) {
       ctx.render.render(ctx.scene, ctx.cam);
       return;
@@ -292,20 +270,25 @@ const prepareAnim = (
 
     ctx.render.render(ctx.scene, ctx.cam);
   };
+
+  return mainLoop;
 };
 
-export const prepareCanvas = (canvasParent: HTMLElement): ThreeContext =>
-  initThree(canvasParent);
+export const prepareCanvas = (canvasParent: HTMLElement): ThreeContext => initThree(canvasParent);
 
-export const parseAndCreateRequest = (
-  input: string,
-): Promise<TranslationRequest> => createRequest(input);
+export const parseAndCreateRequest = (input: string): Promise<TranslationRequest> =>
+  createRequest(input);
 
 export const renderAsl = (
   ctx: ThreeContext,
   req: TranslationRequest,
   onWordChange?: (index: number) => void,
 ) => {
+  if (ctx.anim !== undefined) {
+    ctx.anim.paused = true;
+    deleteScene(ctx.scene, ctx.anim.currentScene);
+    ctx.render.setAnimationLoop(null);
+  }
   const anim = prepareAnim(ctx, req, onWordChange);
   ctx.render.setAnimationLoop(anim);
 };

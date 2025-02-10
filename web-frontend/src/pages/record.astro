@@ -1,144 +1,159 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Title from "../components/Title.astro";
 import Button from "../components/Button.astro";
 ---
 
 <Layout title="Record ASL Word/Phrase">
-  <Title>Record ASL Word/Phrase</Title>
   <div>
-    <video data-hidden="false" class="data-[hidden=true]:hidden mx-auto" id="video-output" />
-    <div data-hidden="true" id="preview-parent" class="data-[hidden=true]:hidden my-24 h-96">
-    </div>
+    <video data-hidden="false" class="data-[hidden=true]:hidden mx-auto" id="video-output"></video>
+    <div data-hidden="true" id="preview-parent" class="data-[hidden=true]:hidden my-24 h-96"></div>
   </div>
   <div class="flex flex-col gap-4">
-    <div id="complete-section" data-hidden="true" class="data-[hidden=true]:hidden w-full flex flex-row gap-2">
-      <input class="grow border-2 border-solid border-blue-200" name="word-name" id="name-input" value="word" />
-      <Button id="download-link" class="text-center" as="a" href="about:blank">Download Data</Button>
+    <div
+      id="complete-section"
+      data-hidden="true"
+      class="data-[hidden=true]:hidden w-full flex flex-row gap-2"
+    >
+      <input
+        class="grow border-2 border-solid border-blue-200"
+        name="word-name"
+        id="name-input"
+        value="word"
+      />
+      <Button id="download-link" class="text-center" as="a" href="about:blank">Download Data</Button
+      >
     </div>
-    <Button data-hidden="false" data-recording="false" class="data-[hidden=true]:hidden data-[recording=true]:bg-red-500 text-center w-full" id="record">Start Recording</Button>
+    <Button
+      data-hidden="false"
+      data-recording="false"
+      class="data-[hidden=true]:hidden data-[recording=true]:bg-red-500 text-center w-full"
+      id="record">Start Recording</Button
+    >
   </div>
 </Layout>
 
 <script>
-import { decodeMultiStream, encode } from "@msgpack/msgpack";
-import { type WordData, type Frame, prepareCanvas, renderAsl, type TranslationRequest } from "../lib/asl-render";
+  import { decodeMultiStream, encode } from "@msgpack/msgpack";
+  import {
+    type WordData,
+    type Frame,
+    prepareCanvas,
+    renderAsl,
+    type TranslationRequest,
+  } from "../lib/asl-render";
 
-const VIDEO_MIME = "video/webm";
+  const VIDEO_MIME = "video/webm";
 
-const backendHost = import.meta.env.PUBLIC_BACKEND_HOST ?? "";
-const markEndpoint = `${backendHost}/api/mark`;
+  const backendHost = import.meta.env.PUBLIC_BACKEND_HOST ?? "";
+  const markEndpoint = `${backendHost}/api/mark`;
 
-const processVideo = async (rawFrames: Blob[]): Promise<WordData | null> => {
-  const resp = await fetch(markEndpoint, { 
-    method: "POST", 
-    body: new Blob(rawFrames), 
-    headers: { "Content-Type": VIDEO_MIME },
-  });
-  if (resp.ok && resp.body !== null) {
-    const frames = [];
-    for await (const frame of decodeMultiStream(resp.body)) {
-      frames.push(frame as Frame);
-    }
-    console.debug("Got frames", frames.length);
-    return frames;
-  } else {
-    // TODO: Error Handle
-    console.error(resp);
-    return null;
-  }
-};
-
-const ready = () => {
-  const videoElem = document.getElementById("video-output")! as HTMLVideoElement;
-  const recordButton = document.getElementById("record")! as HTMLButtonElement;
-  const downloadLink = document.getElementById("download-link")! as HTMLAnchorElement;
-  const previewCanvas = document.getElementById("preview-parent")! as HTMLDivElement;
-  const completeSection = document.getElementById("complete-section")! as HTMLDivElement;
-  const nameInput = document.getElementById("name-input")! as HTMLInputElement;
-
-  let isRecording = false;
-  let stopping = false;
-
-  let recordStream : MediaStream | null = null;
-
-  const afterRecord = async (rawData: Blob[]) => {
-    recordButton.disabled = true;
-    recordButton.dataset["recording"] = "false";
-    recordButton.innerText = "Processing...";
-    const wordData = await processVideo(rawData);
-    if (wordData !== null) {
-      videoElem.dataset["hidden"] = "true";
-      previewCanvas.dataset["hidden"] = "false";
-      const req = {
-        words: ["rec"],
-        dataMap: {rec: wordData},
-      } as TranslationRequest;
-      const threeCtx = prepareCanvas(previewCanvas);
-      renderAsl(threeCtx, req);
-      recordButton.dataset["hidden"] = "true";
-      const msgPackData = encode(wordData);
-      downloadLink.href = URL.createObjectURL(new Blob([msgPackData]));
-      downloadLink.download = "word.msgpack";
-      completeSection.dataset["hidden"] = "false";
-      nameInput.onchange = e => {
-        downloadLink.download = `${(e.target! as HTMLInputElement).value}.msgpack`;
-      };
+  const processVideo = async (rawFrames: Blob[]): Promise<WordData | null> => {
+    const resp = await fetch(markEndpoint, {
+      method: "POST",
+      body: new Blob(rawFrames),
+      headers: { "Content-Type": VIDEO_MIME },
+    });
+    if (resp.ok && resp.body !== null) {
+      const frames = [];
+      for await (const frame of decodeMultiStream(resp.body)) {
+        frames.push(frame as Frame);
+      }
+      console.debug("Got frames", frames.length);
+      return frames;
     } else {
-      console.error("wordData is null!");
+      // TODO: Error Handle
+      console.error(resp);
+      return null;
     }
   };
 
-  const streamOpened = (stream: MediaStream) => {
-    const options = {mimeType: VIDEO_MIME};
-    const recordedData: Blob[] = [];
-    const recorder = new MediaRecorder(stream, options);
-    videoElem.srcObject = stream;
-    videoElem.play();
+  const ready = () => {
+    const videoElem = document.getElementById("video-output")! as HTMLVideoElement;
+    const recordButton = document.getElementById("record")! as HTMLButtonElement;
+    const downloadLink = document.getElementById("download-link")! as HTMLAnchorElement;
+    const previewCanvas = document.getElementById("preview-parent")! as HTMLDivElement;
+    const completeSection = document.getElementById("complete-section")! as HTMLDivElement;
+    const nameInput = document.getElementById("name-input")! as HTMLInputElement;
 
-    const onData = (e: MediaRecorderEventMap["dataavailable"]) => {
-      if (e.data.size > 0) {
-        recordedData.push(e.data);
-      }
+    let isRecording = false;
+    let stopping = false;
 
-      if (stopping && isRecording) {
-        recorder.stop();
-        stopping = false;
-      }
-    };
+    let recordStream: MediaStream | null = null;
 
-    const onStopped = () => {
-      isRecording = false;
-      stream.getTracks().forEach(t => t.stop());
-      afterRecord(recordedData);
-    };
-
-    recorder.addEventListener("dataavailable", onData);
-    recorder.addEventListener("stop", onStopped);
-    isRecording = true;
-
-    recorder.start(500);
-  };
-
-  recordButton.onclick = () => {
-    if (isRecording) {
-      recordButton.innerText = "Start Recording";
+    const afterRecord = async (rawData: Blob[]) => {
+      recordButton.disabled = true;
       recordButton.dataset["recording"] = "false";
-      stopping = true;
-    } else {
-      recordButton.dataset["recording"] = "true";
-      recordButton.innerText = "Stop Recording";
-      if (recordStream !== null) {
-        streamOpened(recordStream);
+      recordButton.innerText = "Processing...";
+      const wordData = await processVideo(rawData);
+      if (wordData !== null) {
+        videoElem.dataset["hidden"] = "true";
+        previewCanvas.dataset["hidden"] = "false";
+        const req = {
+          words: ["rec"],
+          dataMap: { rec: wordData },
+        } as TranslationRequest;
+        const threeCtx = prepareCanvas(previewCanvas);
+        renderAsl(threeCtx, req);
+        recordButton.dataset["hidden"] = "true";
+        const msgPackData = encode(wordData);
+        downloadLink.href = URL.createObjectURL(new Blob([msgPackData]));
+        downloadLink.download = "word.msgpack";
+        completeSection.dataset["hidden"] = "false";
+        nameInput.onchange = (e) => {
+          downloadLink.download = `${(e.target! as HTMLInputElement).value}.msgpack`;
+        };
       } else {
-        navigator.mediaDevices.getUserMedia({audio: false, video: true}).then(streamOpened);
+        console.error("wordData is null!");
       }
-    }
+    };
+
+    const streamOpened = (stream: MediaStream) => {
+      const options = { mimeType: VIDEO_MIME };
+      const recordedData: Blob[] = [];
+      const recorder = new MediaRecorder(stream, options);
+      videoElem.srcObject = stream;
+      videoElem.play();
+
+      const onData = (e: MediaRecorderEventMap["dataavailable"]) => {
+        if (e.data.size > 0) {
+          recordedData.push(e.data);
+        }
+
+        if (stopping && isRecording) {
+          recorder.stop();
+          stopping = false;
+        }
+      };
+
+      const onStopped = () => {
+        isRecording = false;
+        stream.getTracks().forEach((t) => t.stop());
+        afterRecord(recordedData);
+      };
+
+      recorder.addEventListener("dataavailable", onData);
+      recorder.addEventListener("stop", onStopped);
+      isRecording = true;
+
+      recorder.start(500);
+    };
+
+    recordButton.onclick = () => {
+      if (isRecording) {
+        recordButton.innerText = "Start Recording";
+        recordButton.dataset["recording"] = "false";
+        stopping = true;
+      } else {
+        recordButton.dataset["recording"] = "true";
+        recordButton.innerText = "Stop Recording";
+        if (recordStream !== null) {
+          streamOpened(recordStream);
+        } else {
+          navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(streamOpened);
+        }
+      }
+    };
   };
 
-
-};
-
-window.onload = ready;
+  window.onload = ready;
 </script>
-
