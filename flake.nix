@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixpkgs-unstable";
     flakelight.url = "github:nix-community/flakelight";
+    flakelight.inputs.nixpkgs.follows = "nixpkgs";
 
     pyproject-nix = {
       url = "github:pyproject-nix/pyproject.nix";
