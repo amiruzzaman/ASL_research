@@ -1,34 +1,73 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Spinner from "../components/Spinner.astro";
 ---
 
-<Layout title="Record ASL Word/Phrase">
-  <div>
-    <video data-hidden="false" class="data-[hidden=true]:hidden mx-auto" id="video-output"></video>
-    <div data-hidden="true" id="preview-parent" class="data-[hidden=true]:hidden my-24 h-96"></div>
-  </div>
-  <div class="flex flex-col gap-4">
-    <div
-      id="complete-section"
-      data-hidden="true"
-      class="data-[hidden=true]:hidden w-full flex flex-row gap-2"
-    >
-      <input
-        class="grow border-2 border-solid border-blue-200"
-        name="word-name"
-        id="name-input"
-        value="word"
-      />
-      <a id="download-link" class="text-center as-button" href="about:blank">Download Data</a>
+<Layout class="app" title="Record ASL Word/Phrase">
+  <div class="io-pane">
+    <div style="display: none;" id="spinner-overlay" class="spinner-overlay">
+      <Spinner id="spinner" />
     </div>
-    <button
-      data-hidden="false"
-      data-recording="false"
-      class="data-[hidden=true]:hidden data-[recording=true]:bg-red-500 text-center w-full"
-      id="record">Start Recording</button
-    >
+    <video id="video-output"></video>
+    <div style="display: none;" id="preview-parent"></div>
+  </div>
+  <div class="interface">
+    <div id="complete-section" style="display: none;">
+      <input name="word-name" id="name-input" value="word" />
+      <a id="download-link" class="as-button" href="about:blank">Download Data</a>
+    </div>
+    <button data-recording="false" id="record">Start Recording</button>
   </div>
 </Layout>
+
+<style>
+  .app {
+    display: flex;
+    flex-direction: column;
+    gap: var(--2);
+  }
+
+  .interface {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .io-pane {
+    height: 40vh;
+    display: flex;
+    align-items: center;
+    padding: var(--2);
+    /* Hard-coded dark background since in light theme it's hard to see the animation */
+    background-color: #14191f;
+    position: relative;
+  }
+
+  .spinner-overlay {
+    position: absolute;
+    z-index: 10;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .spinner-overlay > #spinner {
+    font-size: var(--4);
+    margin: auto;
+  }
+
+  #preview-parent {
+    width: 100%;
+    height: 100%;
+  }
+
+  video {
+    height: 100%;
+    margin: 0 auto;
+    border-radius: var(--1);
+  }
+</style>
 
 <script>
   import { decodeMultiStream, encode } from "@msgpack/msgpack";
@@ -72,6 +111,7 @@ import Layout from "../layouts/Layout.astro";
     const previewCanvas = document.getElementById("preview-parent")! as HTMLDivElement;
     const completeSection = document.getElementById("complete-section")! as HTMLDivElement;
     const nameInput = document.getElementById("name-input")! as HTMLInputElement;
+    const spinnerElem = document.getElementById("spinner-overlay")! as HTMLSpanElement;
 
     let isRecording = false;
     let stopping = false;
@@ -80,23 +120,23 @@ import Layout from "../layouts/Layout.astro";
 
     const afterRecord = async (rawData: Blob[]) => {
       recordButton.disabled = true;
-      recordButton.dataset["recording"] = "false";
-      recordButton.innerText = "Processing...";
+      recordButton.style.display = "none";
+      videoElem.style.display = "none";
+      spinnerElem.style.display = "flex";
       const wordData = await processVideo(rawData);
       if (wordData !== null) {
-        videoElem.dataset["hidden"] = "true";
-        previewCanvas.dataset["hidden"] = "false";
+        previewCanvas.style.display = "block";
         const req = {
           words: ["rec"],
           dataMap: { rec: wordData },
         } as TranslationRequest;
         const threeCtx = prepareCanvas(previewCanvas);
         renderAsl(threeCtx, req);
-        recordButton.dataset["hidden"] = "true";
         const msgPackData = encode(wordData);
         downloadLink.href = URL.createObjectURL(new Blob([msgPackData]));
         downloadLink.download = "word.msgpack";
-        completeSection.dataset["hidden"] = "false";
+        spinnerElem.style.display = "none";
+        completeSection.style.display = "block";
         nameInput.onchange = (e) => {
           downloadLink.download = `${(e.target! as HTMLInputElement).value}.msgpack`;
         };
