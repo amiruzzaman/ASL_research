@@ -20,7 +20,7 @@ const { title, class: className, ...rest } = Astro.props;
 
   <body>
     <header>
-      <nav class="container flex-row-responsive">
+      <nav class="container colrow-md">
         <a href="/">ASL Research</a>
         <a href="/e2a">English To ASL</a>
         <a href="/record">Record ASL</a>
@@ -49,12 +49,9 @@ const { title, class: className, ...rest } = Astro.props;
     width: 100vw;
   }
 
-  header {
-    border-bottom: solid 2px var(--accent-100);
-  }
-
   nav {
     padding: var(--2) 0;
+    border-bottom: solid 2px var(--accent-100);
     display: flex;
     flex-direction: row;
     align-items: center;

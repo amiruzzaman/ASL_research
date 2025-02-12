@@ -69,6 +69,17 @@ const initThree = (parent: HTMLElement): ThreeContext => {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 2000);
 
+  const onParentResize = (entries: ResizeObserverEntry[]) => {
+    const lastItem = entries[entries.length - 1];
+    const { inlineSize: width, blockSize: height } = lastItem.contentBoxSize[0];
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+  };
+
+  const observer = new ResizeObserver(onParentResize);
+  observer.observe(parent);
+
   const renderer = new THREE.WebGLRenderer({ alpha: true });
   renderer.setSize(width, height);
   parent.appendChild(renderer.domElement);

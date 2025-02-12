@@ -1,10 +1,17 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Button from "../components/Button.astro";
 ---
 
 <Layout title="English to ASL">
-  <div class="app container">
+  <div class="app">
+    <div id="word-list" class="word-list">
+      <span
+        id="word-template"
+        data-active="false"
+        data-unknown="false"
+        style="display: none;"
+        class="word-chip"></span>
+    </div>
     <div class="wrapper">
       <div id="canvas-parent" class="canvas-parent"></div>
     </div>
@@ -16,7 +23,7 @@ import Button from "../components/Button.astro";
         type="text"
         placeholder="Hello"
       />
-      <Button disabled id="submit">Play</Button>
+      <button disabled id="submit">Play</button>
     </div>
   </div>
   <p>
@@ -27,9 +34,32 @@ import Button from "../components/Button.astro";
 </Layout>
 
 <style>
+  .word-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--1);
+  }
+
+  .word-chip {
+    border-radius: var(--4);
+    padding: var(--1) var(--2);
+    border: dashed 2px var(--accent-50);
+    background-color: var(--accent-100);
+  }
+
+  .word-chip[data-active="true"] {
+    border-style: solid;
+    border-color: var(--primary-200);
+    background-color: var(--primary-100);
+  }
+
+  .word-list > .word-chip[data-unknown="true"] {
+    border-color: red;
+  }
+
   .app {
     display: flex;
-    padding: var(--2);
     align-items: center;
     justify-content: stretch;
     flex-direction: column;
@@ -48,6 +78,10 @@ import Button from "../components/Button.astro";
     }
   }
 
+  .wrapper {
+    box-sizing: border-box;
+  }
+
   .canvas-parent {
     width: 100%;
     height: 100%;
@@ -58,7 +92,14 @@ import Button from "../components/Button.astro";
   }
 
   .wrapper:has(canvas) {
-    border: solid 2px var(--secondary);
+    /* Hard-coded dark background since in light theme it's hard to see the animation */
+    background-color: #14191f;
+  }
+
+  .input-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: var(--1);
   }
 
   .wrapper {
@@ -88,7 +129,7 @@ import Button from "../components/Button.astro";
       wordUi.id = wordId;
       wordUi.style.display = "unset";
       wordUi.textContent = word;
-      wordUi.dataset.known = (word in req.dataMap).toString();
+      wordUi.dataset.unknown = (!(word in req.dataMap)).toString();
       target.appendChild(wordUi);
       return wordUi as HTMLElement;
     });
@@ -105,7 +146,7 @@ import Button from "../components/Button.astro";
     const submitButton = document.getElementById("submit")!;
     const userInputBox = document.getElementById("user-input")! as HTMLInputElement;
     const wordUiTemplate = document.getElementById("word-template")!;
-    const wordShowingList = document.getElementById("word-showing")!;
+    const wordList = document.getElementById("word-list")!;
     const canvasParent = document.getElementById("canvas-parent")!;
 
     const ctx = prepareCanvas(canvasParent);
@@ -126,14 +167,19 @@ import Button from "../components/Button.astro";
 
       const req = await parseAndCreateRequest(input);
       submitButton.textContent = "Preparing";
-      buildWordUi(wordUiTemplate, wordShowingList, req);
+      buildWordUi(wordUiTemplate, wordList, req);
       let lastWord = 0;
       renderAsl(ctx, req, (i) => {
         setWordActive(lastWord, false);
         setWordActive(i, true);
         lastWord = i;
       });
-      submitButton.textContent = "Playing";
+      userInputBox.parentNode?.removeChild?.(userInputBox);
+      submitButton.removeAttribute("disabled");
+      submitButton.textContent = "Restart";
+      submitButton.onclick = () => {
+        window.location.reload();
+      };
     };
     submitButton.removeAttribute("disabled");
     userInputBox.focus();

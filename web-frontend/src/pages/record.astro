@@ -1,6 +1,5 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Button from "../components/Button.astro";
 ---
 
 <Layout title="Record ASL Word/Phrase">
@@ -20,14 +19,13 @@ import Button from "../components/Button.astro";
         id="name-input"
         value="word"
       />
-      <Button id="download-link" class="text-center" as="a" href="about:blank">Download Data</Button
-      >
+      <a id="download-link" class="text-center as-button" href="about:blank">Download Data</a>
     </div>
-    <Button
+    <button
       data-hidden="false"
       data-recording="false"
       class="data-[hidden=true]:hidden data-[recording=true]:bg-red-500 text-center w-full"
-      id="record">Start Recording</Button
+      id="record">Start Recording</button
     >
   </div>
 </Layout>
