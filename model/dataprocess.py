@@ -11,7 +11,7 @@ import spacy
 from tqdm import tqdm
 
 class ASLDataset(Dataset):
-    def __init__(self, gloss_set, text_set, gloss_vocab, text_vocab):
+    def __init__(self, gloss_set, text_set, gloss_vocab, text_vocab, filters):
         """
         Custom dataset class for the ASLG-PC12 dataset
 
@@ -27,7 +27,9 @@ class ASLDataset(Dataset):
         self.text_set = text_set
 
         self.gloss_vocab = gloss_vocab
-        self.text_vocab = text_vocab    
+        self.text_vocab = text_vocab
+
+        self.filters = filters    
 
         self.nlp = spacy.blank("en")
 
@@ -50,9 +52,12 @@ class ASLDataset(Dataset):
         gloss = self.gloss_set[index]
         text = self.text_set[index]
 
+        for filter in self.filters:
+            gloss = gloss.replace(filter, "")
+
         # Split sentence of ASL gloss and English text to a list of words (Adds the SOS and EOS also)
-        gloss_words = ["<sos>"] + [token.text for token in self.nlp(gloss)] + ["<eos>"]
-        text_words = ["<sos>"] + [token.text for token in self.nlp(text)] + ["<eos>"]
+        gloss_words = ["<sos>"] + gloss.split() + ["<eos>"]
+        text_words = ["<sos>"] + text.split() + ["<eos>"]
         
         # Convert those list of words to tokens/indices in the vocab
         gloss_tokens = torch.tensor([self.gloss_vocab[word] for word in gloss_words])
@@ -60,7 +65,7 @@ class ASLDataset(Dataset):
         
         return gloss_tokens, text_tokens
 
-def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"]):
+def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"], filters = []):
     """
     Builds the vocabulary for a dataset by splitting each sentence by their words and then
     Create two dictionaries, id_to_word and word_to_id.
@@ -73,12 +78,14 @@ def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"]):
         A dictionary that maps each word in the dataset to their token id and another dictionary
         that does the opposite
     """
-    nlp = spacy.blank("en")
     count = Counter()
 
     # Getting the count of all words in the dataset
-    for sentence in tqdm(nlp.pipe(dataset)):
-        count.update([token.text for token in sentence])
+    for sentence in tqdm(dataset):
+        for filter in filters:
+            sentence = sentence.replace(filter, "")
+        
+        count.update(sentence.split())
 
     # Sort the words based on how many times it appears in the dataset (Largest to smallest)
     words = sorted(count.keys(), key=lambda word: count[word], reverse=True)
@@ -121,19 +128,28 @@ def get_data(batch_size):
         A dataloader that contains the ASL glosses and the English sentences
     """
     enable_progress_bars()
-
+    filters = ["DESC-", "X-"]
+    
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
     aslg_dataset = load_dataset("achrafothman/aslg_pc12", split='train')
     gloss_set, text_set = zip(*[(pair["gloss"].strip(), pair["text"].strip()) for pair in aslg_dataset])
     
     print("Building the vocab...")
-    gloss_vocab, gloss_id = build_vocab(gloss_set)
+    gloss_vocab, gloss_id = build_vocab(gloss_set, filters=filters)
     text_vocab, text_id = build_vocab(text_set)
 
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
-    dataset = ASLDataset(gloss_set, text_set, gloss_vocab, text_vocab)
+    dataset = ASLDataset(gloss_set, text_set, gloss_vocab, text_vocab, filters)
     dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
+    
+    train_features, train_labels = next(iter(dataloader))
+    gloss = train_features[0]
+    text = train_labels[0]
+
+    print(gloss)
+    print([gloss_id[word] for word in gloss.tolist()])
+    print()
 
     return dataloader, gloss_vocab, gloss_id, text_vocab, text_id

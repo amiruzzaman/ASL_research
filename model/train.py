@@ -141,15 +141,16 @@ def generate_square_subsequent_mask(size):
     mask = mask.float().masked_fill(mask == 0, -torch.inf).masked_fill(mask == 1, float(0.0))
     return mask
 
-def main():
+def train():
     data, gloss_vocab, gloss_id, text_vocab, text_id = get_data(64)
     
     # Creating the translation (Transformer) model
     EPOCHS = 10
     model = Translator(len(gloss_vocab), len(text_vocab), 512, 8, 2, 2).to(DEVICE)
     criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"])
-    optimizer = optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-9)\
-        
+    optimizer = optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-9)
+    validate(model, data, criterion, gloss_vocab, text_vocab)
+
     best_loss = -torch.inf
     for epoch in range(1, EPOCHS + 1):
         # Train through the entire dataset and keep track of total time
@@ -165,7 +166,7 @@ def main():
         if valid_loss < best_loss:
             best_loss = valid_loss
             print("New best model, saving...")
-            torch.save(model.state_dict(), PATH + "/best.pt")
+            torch.save(model.state_dict(), PATH + "best.pt")
 
         # Saves model's data after current epoch (Checkpoint system)
         torch.save({
@@ -173,8 +174,10 @@ def main():
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'criterion': criterion
-                    }, PATH + f"/epoch_{epoch}.pt")
-        
+                    }, PATH + f"epoch_{epoch}.pt")
+
+def main():
+    train()
 
 if __name__ == "__main__":
     main()
