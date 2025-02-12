@@ -66,8 +66,17 @@ class Translator(nn.Module):
         src_pos = self.pos_encoding(self.src_embedding(src))
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
 
+        # print(src_pos.shape)
+        # print(trg_pos.shape)
+        # print(self.transformer.d_model)
+        # print(src_mask.shape)
+        # print(trg_mask.shape)
+
+        # print(src_padding_mask.shape)
+        # print(trg_padding_mask.shape)
+
         # Feed the source and target embedding matrices into the transformer model
-        out = self.transformer(src, trg, src_mask, trg_mask, None, src_padding_mask, trg_padding_mask, trg_padding_mask, memory_padding_mask)
+        out = self.transformer(src_pos, trg_pos, src_mask, trg_mask, None, src_padding_mask, trg_padding_mask, memory_padding_mask)
 
         # Feeds the output of the decoders into a linear function that output a vector of size trg_vocal_size 
         # and then applys the softmax activation function on it to receive a probability distribution for each sequence in the batch
@@ -88,7 +97,7 @@ class Translator(nn.Module):
         """
 
         src_pos = self.pos_encoding(self.src_embedding(src))
-        out = self.transformer.encoder(src, src_mask)
+        out = self.transformer.encoder(src_pos, src_mask)
 
         return out
     
@@ -105,7 +114,7 @@ class Translator(nn.Module):
         """
 
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
-        out = self.transformer.decoder(trg, memory, trg_mask)
+        out = self.transformer.decoder(trg_pos, memory, trg_mask)
 
         return self.softmax(self.linear(out))
         

@@ -32,7 +32,7 @@ class PositionalEncoding(nn.Module):
             x: Embedding matrix (Batch, Sequence Size, Embedding Size)
 
         Returns:
-            Tensor: Embedding matrix with positions encoded into them
+            Embedding matrix with positions encoded into them
         """
 
         res = x + self.pe[:x.size(dim=1), :]

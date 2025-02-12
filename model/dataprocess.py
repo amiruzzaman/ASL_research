@@ -3,10 +3,12 @@ from typing import Counter
 import torch
 import numpy
 from datasets import load_dataset
+from datasets import enable_progress_bars
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import torch.nn.functional as F
 import spacy
+from tqdm import tqdm
 
 class ASLDataset(Dataset):
     def __init__(self, gloss_set, text_set, gloss_vocab, text_vocab):
@@ -75,7 +77,7 @@ def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"]):
     count = Counter()
 
     # Getting the count of all words in the dataset
-    for sentence in nlp.pipe(dataset):
+    for sentence in tqdm(nlp.pipe(dataset)):
         count.update([token.text for token in sentence])
 
     # Sort the words based on how many times it appears in the dataset (Largest to smallest)
@@ -118,6 +120,7 @@ def get_data(batch_size):
     Returns:
         A dataloader that contains the ASL glosses and the English sentences
     """
+    enable_progress_bars()
 
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
@@ -129,7 +132,7 @@ def get_data(batch_size):
     text_vocab, text_id = build_vocab(text_set)
 
     # Creating Custom ASL Dataset
-    print("Creating custom ASL Dataset and Dataloader...")
+    print("Creating custom ASL Dataset and Dataloader...\n")
     dataset = ASLDataset(gloss_set, text_set, gloss_vocab, text_vocab)
     dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
 
