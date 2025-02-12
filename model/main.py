@@ -141,25 +141,24 @@ def generate_square_subsequent_mask(size):
     mask = mask.float().masked_fill(mask == 0, -torch.inf).masked_fill(mask == 1, float(0.0))
     return mask
 
-def train():
-    data, gloss_vocab, gloss_id, text_vocab, text_id = get_data(64)
+def main():
+    train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = get_data(64)
     
     # Creating the translation (Transformer) model
     EPOCHS = 10
     model = Translator(len(gloss_vocab), len(text_vocab), 512, 8, 2, 2).to(DEVICE)
     criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"])
     optimizer = optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-9)
-    validate(model, data, criterion, gloss_vocab, text_vocab)
 
     best_loss = -torch.inf
     for epoch in range(1, EPOCHS + 1):
         # Train through the entire dataset and keep track of total time
         start_time = time.time()
-        train(model, data, optimizer, criterion, gloss_vocab, text_vocab)
+        train(model, train_dl, optimizer, criterion, gloss_vocab, text_vocab)
         total_time = time.time() - start_time
 
         # Goes through the validation dataset 
-        valid_loss = validate(model, data, criterion, gloss_vocab, text_vocab)
+        valid_loss = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
 
         # If the average loss from testing the validation data is smallest than the best model at that point,
         # Then we save the current model 
@@ -176,8 +175,6 @@ def train():
                     'criterion': criterion
                     }, PATH + f"epoch_{epoch}.pt")
 
-def main():
-    train()
 
 if __name__ == "__main__":
     main()

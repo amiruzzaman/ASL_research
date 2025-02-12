@@ -6,12 +6,13 @@ from datasets import load_dataset
 from datasets import enable_progress_bars
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
+from sklearn.model_selection import train_test_split
 import torch.nn.functional as F
 import spacy
 from tqdm import tqdm
 
 class ASLDataset(Dataset):
-    def __init__(self, gloss_set, text_set, gloss_vocab, text_vocab, filters):
+    def __init__(self, gloss_set, text_set, gloss_vocab, text_vocab, gloss_filters=[], text_filters=[]):
         """
         Custom dataset class for the ASLG-PC12 dataset
 
@@ -21,6 +22,9 @@ class ASLDataset(Dataset):
 
             gloss_vocab: A dictionary that maps words in the gloss vocab to a numerical token
             text_vocab: A dictionary that maps words in the English vocab to a numerical token
+
+            gloss_filters: A list that contains certain words to get rid of in the glosses
+            text_filters: A list that contains certain words to get rid of in the texts
         """
         
         self.gloss_set = gloss_set
@@ -29,9 +33,9 @@ class ASLDataset(Dataset):
         self.gloss_vocab = gloss_vocab
         self.text_vocab = text_vocab
 
-        self.filters = filters    
+        self.gloss_filters = gloss_filters
+        self.text_filters = text_filters    
 
-        self.nlp = spacy.blank("en")
 
     def __len__(self):
         return len(self.gloss_set)
@@ -52,8 +56,12 @@ class ASLDataset(Dataset):
         gloss = self.gloss_set[index]
         text = self.text_set[index]
 
-        for filter in self.filters:
+        # Gets rid of certain words in the keywords
+        for filter in self.gloss_filters:
             gloss = gloss.replace(filter, "")
+
+        for filter in self.text_filters:
+            text = text.replace(filter, "")
 
         # Split sentence of ASL gloss and English text to a list of words (Adds the SOS and EOS also)
         gloss_words = ["<sos>"] + gloss.split() + ["<eos>"]
@@ -117,39 +125,39 @@ def collate_fn(batch):
     return pad_sequence(x, batch_first=True, padding_value=2), pad_sequence(y, batch_first=True, padding_value=2)
 
 
-def get_data(batch_size):
+def get_data(batch_size, random_state=29, test_size=0.1):
     """
     Loads the ASLG-PC12 Dataset and creates a Dataloader for it.
 
     Parameters:
         batch_size: How many items each batch will contain
+        random_state: Controls the shuffling applied on the data during splitting.  
+        test_size: The proportion of the dataset to include in the test dataset
 
     Returns:
         A dataloader that contains the ASL glosses and the English sentences
     """
     enable_progress_bars()
     filters = ["DESC-", "X-"]
-    
+
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
     aslg_dataset = load_dataset("achrafothman/aslg_pc12", split='train')
-    gloss_set, text_set = zip(*[(pair["gloss"].strip(), pair["text"].strip()) for pair in aslg_dataset])
+    glosses, texts = zip(*[(pair["gloss"].strip(), pair["text"].strip()) for pair in aslg_dataset])
     
     print("Building the vocab...")
-    gloss_vocab, gloss_id = build_vocab(gloss_set, filters=filters)
-    text_vocab, text_id = build_vocab(text_set)
+    gloss_vocab, gloss_id = build_vocab(glosses, filters=filters)
+    text_vocab, text_id = build_vocab(texts)
+
+    # Split data into a training and validation set
+    gloss_train, gloss_test, english_train, english_test = train_test_split(glosses, texts, random_state=29, test_size=test_size, shuffle=True)
 
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
-    dataset = ASLDataset(gloss_set, text_set, gloss_vocab, text_vocab, filters)
-    dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
+    train_dataset = ASLDataset(gloss_train, english_train, gloss_vocab, text_vocab, filters)
+    test_dataset = ASLDataset(gloss_test, english_test, gloss_vocab, text_vocab, filters)
+
+    train_dl = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
+    test_dl = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
     
-    train_features, train_labels = next(iter(dataloader))
-    gloss = train_features[0]
-    text = train_labels[0]
-
-    print(gloss)
-    print([gloss_id[word] for word in gloss.tolist()])
-    print()
-
-    return dataloader, gloss_vocab, gloss_id, text_vocab, text_id
+    return train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id

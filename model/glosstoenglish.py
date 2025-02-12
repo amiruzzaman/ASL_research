@@ -66,15 +66,6 @@ class Translator(nn.Module):
         src_pos = self.pos_encoding(self.src_embedding(src))
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
 
-        # print(src_pos.shape)
-        # print(trg_pos.shape)
-        # print(self.transformer.d_model)
-        # print(src_mask.shape)
-        # print(trg_mask.shape)
-
-        # print(src_padding_mask.shape)
-        # print(trg_padding_mask.shape)
-
         # Feed the source and target embedding matrices into the transformer model
         out = self.transformer(src_pos, trg_pos, src_mask, trg_mask, None, src_padding_mask, trg_padding_mask, memory_padding_mask)
 
