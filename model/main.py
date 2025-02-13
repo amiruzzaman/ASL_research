@@ -18,10 +18,9 @@ warnings.filterwarnings("ignore")
 def beam_search():
     pass
 
-def greedy_decode(src, src_mask, model, src_vocab, trg_vocab, max_len=1000):
+def greedy_decode(src, src_mask, model, src_vocab, trg_vocab, max_len=10):
     # Convert the sequences from (Sequence) to (Batch, Sequence)
     src = src.unsqueeze(0).to(DEVICE)
-    src_mask = src.unsqueeze(0).to(DEVICE)
 
     # Feed the source sequence and its mask into the transformer's encoder
     memory = model.encode(src, src_mask)
@@ -30,23 +29,39 @@ def greedy_decode(src, src_mask, model, src_vocab, trg_vocab, max_len=1000):
     sequence = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(DEVICE)
 
     for _ in range(max_len):
-        mask = generate_square_subsequent_mask(sequence.shape[-1])
+        mask = generate_square_subsequent_mask(sequence.shape[-1]).type(torch.bool).to(DEVICE)
 
         # Feeds the target and retrieves a vector (Batch, Sequence Size, Target Vocab Size)
-        out = model.decode(sequence, mask, memory)
-
-        predicted = torch.argmax(out, dim=2)
-        next_word = predicted[-1]
+        out = model.decode(sequence, memory, mask)
+        next_word = torch.argmax(out[:, -1], dim=-1)
 
         # Concatenate the predicted token to the output sequence
-        sequence = torch.cat([sequence, torch.ones(1, 1).fill_(next_word).type(torch.long).to(DEVICE)], dim=1)
+        sequence = torch.cat([sequence, torch.ones(1, 1).fill_(next_word.item()).type(torch.long).to(DEVICE)], dim=1)
 
         if next_word == trg_vocab["<eos>"]:
             break
-
+    
     return sequence
 
+def inference(model, src_vocab, src_id, trg_vocab, trg_id):
+    model.eval()
+    
+    while True:
+        sequence = input()
 
+        if sequence.lower() == "<stop>":
+            break
+        
+        # Turns the string input into a tensor containing tokens 
+        tokens = torch.tensor([src_vocab[word if word in src_vocab else "<unk>"] for word in sequence.split()])
+        num_tokens = tokens.shape[0]
+        mask = torch.zeros(num_tokens, num_tokens).type(torch.bool)
+
+        # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string 
+        translated_tokens = greedy_decode(tokens, mask, model, src_vocab, trg_vocab).flatten()
+        translated = " ".join([trg_id[token] for token in translated_tokens.tolist()]).replace("<sos>", "").replace("<eos>", "")
+
+    
 def train(model, data, optimizer, criterion, src_vocab, trg_vocab):
     # Set model to training mode 
     model.train()
@@ -152,7 +167,7 @@ def main():
 
     best_loss = -torch.inf
     for epoch in range(1, EPOCHS + 1):
-        # Train through the entire dataset and keep track of total time
+        # Train through the entire training dataset and keep track of total time
         start_time = time.time()
         train(model, train_dl, optimizer, criterion, gloss_vocab, text_vocab)
         total_time = time.time() - start_time
@@ -178,4 +193,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
