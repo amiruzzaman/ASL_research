@@ -151,7 +151,7 @@ def get_data(batch_size, random_state=29, test_size=0.1):
 
     # Split data into a training and validation set
     gloss_train, gloss_test, english_train, english_test = train_test_split(glosses, texts, random_state=29, test_size=test_size, shuffle=True)
-
+        
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
     train_dataset = ASLDataset(gloss_train, english_train, gloss_vocab, text_vocab, filters)
