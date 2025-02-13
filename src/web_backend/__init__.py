@@ -33,7 +33,8 @@ def process_frames(cap):
             rh = extract_results(holistic_results.right_hand_landmarks)
             lh = extract_results(holistic_results.left_hand_landmarks)
             face = extract_results(holistic_results.face_landmarks)
-            yield msgpack.packb((rh, lh, face))
+            pose = extract_results(holistic_results.pose_world_landmarks)
+            yield msgpack.packb((rh, lh, face, pose))
 
 
 @app.route("/api/word/<string:word>")

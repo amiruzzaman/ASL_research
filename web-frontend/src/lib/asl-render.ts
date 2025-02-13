@@ -2,12 +2,16 @@ import { decodeAsync } from "@msgpack/msgpack";
 
 import handConnections from "./hand_connections.json" with { type: "json" };
 import faceConnections from "./face_connections.json" with { type: "json" };
+import poseConnections from "./pose_connections.json" with { type: "json" };
 
 import * as THREE from "three";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineMaterial } from "three/examples/jsm/Addons.js";
+import { LineSegmentsGeometry } from "three/examples/jsm/Addons.js";
 
 export type Vec3 = [number, number, number];
 export type Hand = Vec3[];
-export type Frame = [Hand, Hand, Hand];
+export type Frame = [Hand | null, Hand | null, Hand | null, Hand | null];
 export type WordData = Frame[];
 
 const backendEndpoint = import.meta.env.PUBLIC_BACKEND_HOST ?? "";
@@ -86,51 +90,74 @@ const initThree = (parent: HTMLElement): ThreeContext => {
   const renderer = new THREE.WebGLRenderer({ alpha: true });
   renderer.setSize(width, height);
   parent.appendChild(renderer.domElement);
-  camera.position.z = 0.75;
-  camera.position.x = -0.5;
-  camera.position.y = -0.5;
+  camera.position.z = 1;
+  camera.position.x = 0;
+  camera.position.y = 0.5;
   return { render: renderer, cam: camera, scene };
 };
 
-const fixPos = ([x, y, z]: Vec3): [number, number, number] => {
+const fixPos = ([x, y, z]: Vec3): Vec3 => {
   return [-x, -y, -z];
 };
+
+const componentWise = (vecA: Vec3, vecB: Vec3, f: (c1: number, c2: number) => number): Vec3 => [
+  f(vecA[0], vecB[0]),
+  f(vecA[1], vecB[1]),
+  f(vecA[2], vecB[2]),
+];
+
+const addVec = (vecA: Vec3, vecB: Vec3): Vec3 => componentWise(vecA, vecB, (a, b) => a + b);
+const subtractVec = (vecA: Vec3, vecB: Vec3): Vec3 => componentWise(vecA, vecB, (a, b) => a - b);
+
+const transformToPose = (
+  posePartRoot: number,
+  pose: Vec3[],
+  partRoot: number,
+  part: Vec3[] | null,
+): Vec3[] => {
+  const rootInPose = pose?.[posePartRoot] ?? ([0, 0, 0] as Vec3);
+  const rootInPart = part?.[partRoot] ?? ([0, 0, 0] as Vec3);
+  return part?.map?.((p) => fixPos(addVec(subtractVec(p, rootInPart), rootInPose))) ?? [];
+};
+
+// Points we don't want in pose since they're often wrong or unneeded in our context.
+const filterPosePoints = [26, 25, 27, 28, 32, 30, 29, 31, 21, 19, 17, 22, 20, 18];
+
+// Positions all points relative to the pose landmarks
+const transformFrame = ([lh, rh, face, pose]: Frame): Frame => [
+  pose && lh ? transformToPose(16, pose, 0, lh) : null,
+  pose && rh ? transformToPose(15, pose, 0, rh) : null,
+  pose && face ? transformToPose(0, pose, 0, face) : null,
+  pose?.map?.(fixPos)?.map((p, i) => (filterPosePoints.includes(i) ? fallBackPose[i] : p)) ?? null,
+];
 
 const basicMat = (color: number) => new THREE.MeshBasicMaterial({ color });
 
 const createPoint = (scene: THREE.Scene, pos: Vec3, mat: THREE.MeshBasicMaterial) => {
   const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.003), mat);
   scene.add(sphere);
-  sphere.position.set(...fixPos(pos));
+  sphere.position.set(...pos);
   return sphere;
 };
 
 const updatePoint = (point: THREE.Mesh, pos: Vec3) => {
-  point.position.set(...fixPos(pos));
+  point.position.set(...pos);
 };
 
-const lineMat = (color: number) => new THREE.LineBasicMaterial({ color });
+const lineMat = (color: number) => new LineMaterial({ color });
 
-const connectPoints = (
-  scene: THREE.Scene,
-  pointA: Vec3,
-  pointB: Vec3,
-  mat: THREE.LineBasicMaterial,
-) => {
-  const geom = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(...pointA),
-    new THREE.Vector3(...pointB),
-  ]);
-  const line = new THREE.Line(geom, mat);
+const connectPoints = (scene: THREE.Scene, pointA: Vec3, pointB: Vec3, mat: LineMaterial) => {
+  const geom = new LineSegmentsGeometry().setPositions([...pointA, ...pointB]);
+  const line = new LineSegments2(geom, mat);
   scene.add(line);
   return line;
 };
 
-const updateLine = (line: THREE.Line, newA: Vec3, newB: Vec3) => {
-  line.geometry.setFromPoints([new THREE.Vector3(...newA), new THREE.Vector3(...newB)]);
+const updateLine = (line: LineSegments2, newA: Vec3, newB: Vec3) => {
+  line.geometry.setPositions([...newA, ...newB]);
 };
 
-type RenderHand = [THREE.Mesh[], THREE.Line[]];
+type RenderHand = [THREE.Mesh[], LineSegments2[]];
 
 const fallBackHand = [
   ...Array(21)
@@ -142,21 +169,21 @@ const fallBackFace = [
     .keys()
     .map((_) => [5, 5, 5] as Vec3),
 ];
+const fallBackPose = [
+  ...Array(33)
+    .keys()
+    .map((_) => [5, 5, 5] as Vec3),
+];
 
 const createHand = (
   scene: THREE.Scene,
   hand: Hand,
   color: number,
-  connectArray: [number, number][],
+  connectArray: Conn,
 ): RenderHand => [
   hand.map((p) => createPoint(scene, p, basicMat(color))),
   connectArray.map(([pointA, pointB]) =>
-    connectPoints(
-      scene,
-      fixPos(hand[pointA] ?? fallBackFace[pointA]),
-      fixPos(hand[pointB] ?? fallBackFace[pointB]),
-      lineMat(color),
-    ),
+    connectPoints(scene, hand[pointA], hand[pointB], lineMat(color)),
   ),
 ];
 
@@ -165,12 +192,10 @@ const updateHand = (currentHand: RenderHand, newHand: Hand, connectArray: [numbe
     updatePoint(currentHand[0][i], pos);
   });
   currentHand[1].forEach((line, i) => {
-    const [pointA, pointB] = connectArray[i];
-    updateLine(
-      line,
-      fixPos(newHand[pointA] ?? fallBackFace[pointA]),
-      fixPos(newHand[pointB] ?? fallBackFace[pointB]),
-    );
+    const [pointA, pointB] = connectArray[i].map((j) => newHand[j]);
+    if (pointA && pointB) {
+      updateLine(line, pointA, pointB);
+    }
   });
 };
 
@@ -180,36 +205,37 @@ const deleteHand = (scene: THREE.Scene, hand: RenderHand) => {
 };
 
 type Conn = [number, number][];
+type SceneState = [RenderHand, RenderHand, RenderHand, RenderHand];
 
-const createScene = (
-  scene: THREE.Scene,
-  [lh, rh, f]: Frame | [null, null, null],
-): [RenderHand, RenderHand, RenderHand] => [
-  createHand(scene, lh ?? fallBackHand, 0x00ff00, handConnections as Conn),
-  createHand(scene, rh ?? fallBackHand, 0x0000ff, handConnections as Conn),
-  createHand(scene, f ?? fallBackFace, 0xff0000, faceConnections as Conn),
+const createScene = (scene: THREE.Scene): SceneState => [
+  createHand(scene, fallBackHand, 0x00ff00, handConnections as Conn), // Left Hand
+  createHand(scene, fallBackHand, 0x4aefdc, handConnections as Conn), // Right Hand
+  createHand(scene, fallBackFace, 0xff0000, faceConnections as Conn), // Face
+  createHand(scene, fallBackPose, 0xffff00, poseConnections as Conn), // Pose
 ];
 
 const updateScene = (
-  [currentLh, currentRh, currentF]: [RenderHand, RenderHand, RenderHand],
-  [newLh, newRh, newF]: Frame,
+  [currentLh, currentRh, currentF, currentPose]: SceneState,
+  [newLh, newRh, newF, newPose]: Frame,
 ) => {
   updateHand(currentLh, newLh ?? fallBackHand, handConnections as Conn);
   updateHand(currentRh, newRh ?? fallBackHand, handConnections as Conn);
   updateHand(currentF, newF ?? fallBackFace, faceConnections as Conn);
+  updateHand(currentPose, newPose ?? fallBackPose, poseConnections as Conn);
 };
 
-const deleteScene = (scene: THREE.Scene, [lh, rh, f]: [RenderHand, RenderHand, RenderHand]) => {
+const deleteScene = (scene: THREE.Scene, [lh, rh, f, p]: SceneState) => {
   deleteHand(scene, lh);
   deleteHand(scene, rh);
   deleteHand(scene, f);
+  deleteHand(scene, p);
 };
 
 type AnimationContext = {
   currentWord: number;
   currentFrame: number;
   paused: boolean;
-  currentScene: [RenderHand, RenderHand, RenderHand];
+  currentScene: SceneState;
 };
 
 const prepareAnim = (
@@ -221,7 +247,7 @@ const prepareAnim = (
     currentWord: 0,
     currentFrame: 0,
     paused: false,
-    currentScene: createScene(ctx.scene, [null, null, null]),
+    currentScene: createScene(ctx.scene),
   };
 
   ctx.anim = animContext;
@@ -261,10 +287,10 @@ const prepareAnim = (
           animContext.currentWord += 1;
           return;
         } else {
-          updateScene(animContext.currentScene, currFrameData);
+          updateScene(animContext.currentScene, transformFrame(currFrameData));
         }
       } else {
-        updateScene(animContext.currentScene, currFrameData);
+        updateScene(animContext.currentScene, transformFrame(currFrameData));
       }
       animContext.currentFrame += 1;
     }
