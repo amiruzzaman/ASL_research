@@ -26,15 +26,13 @@ def extract_results(landmarks):
 
 
 def process_frames(cap):
-    with mp_holistic.Holistic() as holistic:
+    with mp_holistic.Holistic(refine_face_landmarks=True) as holistic:
         for data in cap:
             data.flags.writeable = False
-            results = holistic.process(data)
-
-            rh = extract_results(results.right_hand_landmarks)
-            lh = extract_results(results.left_hand_landmarks)
-            face = extract_results(results.face_landmarks)
-
+            holistic_results = holistic.process(data)
+            rh = extract_results(holistic_results.right_hand_landmarks)
+            lh = extract_results(holistic_results.left_hand_landmarks)
+            face = extract_results(holistic_results.face_landmarks)
             yield msgpack.packb((rh, lh, face))
 
 

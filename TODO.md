@@ -5,7 +5,10 @@
 - [ ] Cachix instance?
 - [ ] NixOS VM config
 - [ ] Shoulder & Arm landmarks
-- [ ] Better face landmarks
+- [x] Better face landmarks
+- [x] Face Connections
+- [ ] Hand connections stopped working??
+- [ ] New MediaPipe API
 - [ ] Linting?
 - [ ] Head meta
 - [ ] Chrome CORS??

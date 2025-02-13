@@ -1,5 +1,8 @@
 import { decodeAsync } from "@msgpack/msgpack";
 
+import handConnections from "./hand_connections.json" with { type: "json" };
+import faceConnections from "./face_connections.json" with { type: "json" };
+
 import * as THREE from "three";
 
 export type Vec3 = [number, number, number];
@@ -96,36 +99,11 @@ const fixPos = ([x, y, z]: Vec3): [number, number, number] => {
 const basicMat = (color: number) => new THREE.MeshBasicMaterial({ color });
 
 const createPoint = (scene: THREE.Scene, pos: Vec3, mat: THREE.MeshBasicMaterial) => {
-  const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.006), mat);
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.003), mat);
   scene.add(sphere);
   sphere.position.set(...fixPos(pos));
   return sphere;
 };
-
-const lineConnections: [number, number][] = [
-  [0, 1],
-  [1, 2],
-  [2, 3],
-  [3, 4],
-  //[3, 5],
-  [0, 5],
-  [5, 6],
-  [6, 7],
-  [7, 8],
-  [5, 9],
-  [9, 10],
-  [10, 11],
-  [11, 12],
-  [9, 13],
-  [13, 14],
-  [14, 15],
-  [15, 16],
-  [13, 17],
-  [17, 18],
-  [18, 19],
-  [19, 20],
-  [17, 0],
-];
 
 const updatePoint = (point: THREE.Mesh, pos: Vec3) => {
   point.position.set(...fixPos(pos));
@@ -160,7 +138,7 @@ const fallBackHand = [
     .map((_) => [5, 5, 5] as Vec3),
 ];
 const fallBackFace = [
-  ...Array(468)
+  ...Array(478)
     .keys()
     .map((_) => [5, 5, 5] as Vec3),
 ];
@@ -173,7 +151,12 @@ const createHand = (
 ): RenderHand => [
   hand.map((p) => createPoint(scene, p, basicMat(color))),
   connectArray.map(([pointA, pointB]) =>
-    connectPoints(scene, fixPos(hand[pointA]), fixPos(hand[pointB]), lineMat(color)),
+    connectPoints(
+      scene,
+      fixPos(hand[pointA] ?? fallBackFace[pointA]),
+      fixPos(hand[pointB] ?? fallBackFace[pointB]),
+      lineMat(color),
+    ),
   ),
 ];
 
@@ -182,7 +165,12 @@ const updateHand = (currentHand: RenderHand, newHand: Hand, connectArray: [numbe
     updatePoint(currentHand[0][i], pos);
   });
   currentHand[1].forEach((line, i) => {
-    updateLine(line, fixPos(newHand[connectArray[i][0]]), fixPos(newHand[connectArray[i][1]]));
+    const [pointA, pointB] = connectArray[i];
+    updateLine(
+      line,
+      fixPos(newHand[pointA] ?? fallBackFace[pointA]),
+      fixPos(newHand[pointB] ?? fallBackFace[pointB]),
+    );
   });
 };
 
@@ -191,22 +179,24 @@ const deleteHand = (scene: THREE.Scene, hand: RenderHand) => {
   hand[1].forEach((p) => scene.remove(p));
 };
 
+type Conn = [number, number][];
+
 const createScene = (
   scene: THREE.Scene,
   [lh, rh, f]: Frame | [null, null, null],
 ): [RenderHand, RenderHand, RenderHand] => [
-  createHand(scene, lh ?? fallBackHand, 0x00ff00, lineConnections),
-  createHand(scene, rh ?? fallBackHand, 0x0000ff, lineConnections),
-  createHand(scene, f ?? fallBackFace, 0xff0000, []),
+  createHand(scene, lh ?? fallBackHand, 0x00ff00, handConnections as Conn),
+  createHand(scene, rh ?? fallBackHand, 0x0000ff, handConnections as Conn),
+  createHand(scene, f ?? fallBackFace, 0xff0000, faceConnections as Conn),
 ];
 
 const updateScene = (
   [currentLh, currentRh, currentF]: [RenderHand, RenderHand, RenderHand],
   [newLh, newRh, newF]: Frame,
 ) => {
-  updateHand(currentLh, newLh ?? fallBackHand, lineConnections);
-  updateHand(currentRh, newRh ?? fallBackHand, lineConnections);
-  updateHand(currentF, newF ?? fallBackFace, []);
+  updateHand(currentLh, newLh ?? fallBackHand, handConnections as Conn);
+  updateHand(currentRh, newRh ?? fallBackHand, handConnections as Conn);
+  updateHand(currentF, newF ?? fallBackFace, faceConnections as Conn);
 };
 
 const deleteScene = (scene: THREE.Scene, [lh, rh, f]: [RenderHand, RenderHand, RenderHand]) => {
