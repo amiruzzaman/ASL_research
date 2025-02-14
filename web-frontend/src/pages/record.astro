@@ -116,7 +116,7 @@ import Spinner from "../components/Spinner.astro";
     let isRecording = false;
     let stopping = false;
 
-    let recordStream: MediaStream | null = null;
+    const recordStream: MediaStream | null = null;
 
     const afterRecord = async (rawData: Blob[]) => {
       recordButton.disabled = true;

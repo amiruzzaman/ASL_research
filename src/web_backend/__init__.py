@@ -5,7 +5,6 @@ import imageio as iio
 from dotenv import load_dotenv
 from flask import Flask, request, Response
 
-from sys import exit
 from os import environ
 from pathlib import Path
 

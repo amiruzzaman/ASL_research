@@ -35,7 +35,7 @@ in
       mprocs
       opencv
       ffmpeg-full
-      black
+      ruff
       nodePackages.prettier
       alejandra
     ];

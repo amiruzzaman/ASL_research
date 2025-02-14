@@ -42,7 +42,7 @@
       systems = ["x86_64-linux" "aarch64-darwin"];
       formatters = {
         "*.nix" = "alejandra .";
-        "*.py" = "black .";
+        "*.py" = "ruff format";
         "*.{ts,css,astro,json,mjs}" = "prettier --write web-frontend";
       };
       nixpkgs.config = {
