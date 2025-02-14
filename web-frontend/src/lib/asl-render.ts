@@ -162,17 +162,17 @@ type RenderHand = [THREE.Mesh[], LineSegments2[]];
 const fallBackHand = [
   ...Array(21)
     .keys()
-    .map((_) => [5, 5, 5] as Vec3),
+    .map(() => [5, 5, 5] as Vec3),
 ];
 const fallBackFace = [
   ...Array(478)
     .keys()
-    .map((_) => [5, 5, 5] as Vec3),
+    .map(() => [5, 5, 5] as Vec3),
 ];
 const fallBackPose = [
   ...Array(33)
     .keys()
-    .map((_) => [5, 5, 5] as Vec3),
+    .map(() => [5, 5, 5] as Vec3),
 ];
 
 const createHand = (
