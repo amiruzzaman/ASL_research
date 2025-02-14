@@ -36,7 +36,7 @@
     pyproject-build-systems,
     # uv2nix_hammer_overrides,
   }:
-    flakelight ./. {
+    flakelight ./. ({outputs, ...}: {
       inherit inputs;
       pname = "asl-research";
       systems = ["x86_64-linux" "aarch64-darwin"];
@@ -49,5 +49,8 @@
         cudaSupport = false;
         allowUnfree = true;
       };
-    };
+      outputs.checkMatrix = {
+        check = builtins.attrNames (outputs.checks.x86_64-linux);
+      };
+    });
 }

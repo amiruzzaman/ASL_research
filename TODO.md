@@ -9,6 +9,6 @@
 - [x] Face Connections
 - [x] Hand connections stopped working??
 - [-] ~~New MediaPipe API~~ Holisitc isn't available yet
-- [ ] Linting?
+- [x] Linting?
 - [ ] Head meta
 - [ ] Chrome CORS??

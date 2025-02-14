@@ -1,0 +1,46 @@
+name: Flake Check CI
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  check-eval:
+    name: Eval / Get Checks
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.checks-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+      - name: Setup Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+      - name: Cache Nix
+        uses: DeterminateSystems/magic-nix-cache-action@v9
+      - name: Show Flake
+        run: nix flake show
+      - name: Output Checks Matrix
+        id: checks-matrix
+        run: echo "matrix=$(nix eval --json .#checkMatrix)" >> $GITHUB_OUTPUT
+  run-checks:
+    name: Run Check
+    needs: check-eval
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{fromJSON(needs.check-eval.outputs.matrix)}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+      - name: Setup Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+      - name: Cache Nix
+        uses: DeterminateSystems/magic-nix-cache-action@v9
+      - name: Run Check ${{matrix.check}}
+        run: nix build .#checks.x86_64-linux.${{matrix.check}}
