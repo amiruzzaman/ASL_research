@@ -19,8 +19,6 @@ jobs:
           ref: ${{ github.head_ref }}
       - name: Setup Nix
         uses: DeterminateSystems/nix-installer-action@v16
-      - name: Cache Nix
-        uses: DeterminateSystems/magic-nix-cache-action@v9
       - name: Show Flake
         run: nix flake show
       - name: Output Checks Matrix
@@ -40,7 +38,5 @@ jobs:
           ref: ${{ github.head_ref }}
       - name: Setup Nix
         uses: DeterminateSystems/nix-installer-action@v16
-      - name: Cache Nix
-        uses: DeterminateSystems/magic-nix-cache-action@v9
       - name: Run Check ${{matrix.check}}
         run: nix build .#checks.x86_64-linux.${{matrix.check}}
