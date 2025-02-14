@@ -23,7 +23,8 @@ jobs:
         run: nix flake show
       - name: Output Checks Matrix
         id: checks-matrix
-        run: echo "matrix=$(nix eval --json .#checkMatrix)" >> $GITHUB_OUTPUT
+        run: |
+          echo "matrix=$(nix eval --json .#checks.x86_64-linux --apply "c: {check = (builtins.attrNames c);}")" >> $GITHUB_OUTPUT
   run-checks:
     name: Run Check
     needs: check-eval
