@@ -12,9 +12,6 @@ load_dotenv()
 
 words_dir = Path(environ.get("WORD_LIBRARY_LOCATION") or "words/").resolve()
 
-if not words_dir.is_dir():
-    words_dir.mkdir()
-
 app = Flask(__name__)
 
 mp_holistic = mp.solutions.holistic

@@ -1,13 +1,15 @@
 {pkgs, ...}:
-pkgs.buildNpmPackage {
+pkgs.buildNpmPackage (let
+  src = ../../web-frontend;
+in {
   name = "asl-research-frontend";
   version = "0.1.0";
-  src = ../../web-frontend;
-  packageJSON = ../../web-frontend/package.json;
+  inherit src;
+  packageJSON = src + "/package.json";
   npmDeps = pkgs.importNpmLock {
-    npmRoot = ../../web-frontend;
+    npmRoot = src;
   };
   npmConfigHook = pkgs.importNpmLock.npmConfigHook;
   installPhase = "cp -r dist/ $out";
   ASTRO_TELEMETRY_DISABLED = 1;
-}
+})

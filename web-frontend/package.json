@@ -11,8 +11,8 @@
     "lint": "tsc --noEmit && eslint --cache . && prettier --check ."
   },
   "dependencies": {
-    "@msgpack/msgpack": "^3.0.0-beta3",
-    "astro": "^5.2.0",
+    "@msgpack/msgpack": "^3.0.1",
+    "astro": "^5.3.0",
     "lightningcss": "^1.29.1",
     "three": "^0.173.0"
   },

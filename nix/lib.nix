@@ -1,5 +1,18 @@
-{inputs, ...}: let
-  workspace = inputs.uv2nix.lib.workspace.loadWorkspace {workspaceRoot = ../.;};
+{
+  inputs,
+  lib,
+  ...
+}: let
+  src = lib.fileset.toSource {
+    root = ../.;
+    fileset = lib.fileset.unions [
+      ../uv.lock
+      ../pyproject.toml
+      ../src
+    ];
+  };
+
+  workspace = inputs.uv2nix.lib.workspace.loadWorkspace {workspaceRoot = src.outPath;};
   overlay = workspace.mkPyprojectOverlay {
     sourcePreference = "wheel";
   };

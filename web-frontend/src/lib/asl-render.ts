@@ -1,3 +1,5 @@
+import "./dispose-poly.ts";
+
 import { decodeAsync } from "@msgpack/msgpack";
 
 import handConnections from "./hand_connections.json" with { type: "json" };

@@ -3,7 +3,7 @@
 ## Ben
 
 - [ ] Cachix instance?
-- [ ] NixOS VM config
+- [x] NixOS VM config
 - [x] Shoulder & Arm landmarks
 - [x] Better face landmarks
 - [x] Face Connections
@@ -11,4 +11,9 @@
 - [-] ~~New MediaPipe API~~ Holisitc isn't available yet
 - [x] Linting?
 - [ ] Head meta
-- [ ] Chrome CORS??
+- [x] Chrome CORS??
+- [ ] Performance improvements
+- [ ] Home Page
+- [ ] Directions for Record
+- [ ] Allow saving new words on the backend
+- [ ] SSL Stuff

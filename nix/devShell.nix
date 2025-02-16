@@ -10,13 +10,6 @@
     editableOverlay
     (final: prev: {
       asl-research = prev.asl-research.overrideAttrs (old: {
-        src = lib.fileset.toSource {
-          root = old.src;
-          fileset = lib.fileset.unions [
-            (old.src + "/pyproject.toml")
-            (old.src + "/src")
-          ];
-        };
         nativeBuildInputs =
           old.nativeBuildInputs
           ++ final.resolveBuildSystem {

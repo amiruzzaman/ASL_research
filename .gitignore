@@ -5,4 +5,5 @@ words
 __pycache__
 *.pyc
 .models
+*.qcow2
 

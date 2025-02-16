@@ -22,3 +22,7 @@ npm *CMD:
 uv *CMD:
     nix develop --command uv {{CMD}}
 
+# Run a production VM site
+vm:
+    nix run .#nixosConfigurations.aslVM.config.system.build.vm
+
