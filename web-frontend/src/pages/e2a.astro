@@ -2,7 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="English to ASL">
+<Layout class="main" title="English to ASL">
   <div class="app">
     <div id="word-list" class="word-list">
       <span
@@ -29,11 +29,19 @@ import Layout from "../layouts/Layout.astro";
   <p>
     Translate English sentences to ASL signs. Enter the English sentence in the field above and
     click "Play". The ASL animation will cycle through each word. If a word is unknown, it will be
-    marked red, and will be skipped.
+    marked red, and will be skipped. Words can be recorded for this page using the <a href="/record"
+      >Record ASL</a
+    > page.
   </p>
 </Layout>
 
 <style>
+  .main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--2);
+  }
+
   .word-list {
     display: flex;
     flex-direction: row;

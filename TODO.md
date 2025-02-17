@@ -10,10 +10,10 @@
 - [x] Hand connections stopped working??
 - [-] ~~New MediaPipe API~~ Holisitc isn't available yet
 - [x] Linting?
-- [ ] Head meta
+- [x] Head meta
 - [x] Chrome CORS??
 - [ ] Performance improvements
-- [ ] Home Page
+- [x] Home Page
 - [ ] Directions for Record
 - [ ] Allow saving new words on the backend
 - [ ] SSL Stuff

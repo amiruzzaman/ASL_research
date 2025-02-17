@@ -18,6 +18,12 @@ import Spinner from "../components/Spinner.astro";
     </div>
     <button data-recording="false" id="record">Start Recording</button>
   </div>
+  <p>
+    Record some ASL by clicking the "Start Recording" button above. After recording you'll be shown
+    a preview of your sign and have the option to save it to a local file. Place this file in the <code
+      >words</code
+    > directory to have it available in the <a href="/e2a">English to ASL</a> page.
+  </p>
 </Layout>
 
 <style>
@@ -40,6 +46,7 @@ import Spinner from "../components/Spinner.astro";
     padding: var(--2);
     /* Hard-coded dark background since in light theme it's hard to see the animation */
     background-color: #14191f;
+    border-radius: var(--2);
     position: relative;
   }
 
