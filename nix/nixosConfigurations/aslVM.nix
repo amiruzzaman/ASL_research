@@ -15,7 +15,7 @@
     "application/xhtml+xml"
     "application/xliff+xml"
     "application/xml"
-    # "application/x-msgpack"
+    "application/x-msgpack"
     "font/collection"
     "font/otf"
     "font/ttf"

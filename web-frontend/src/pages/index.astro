@@ -2,4 +2,34 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="Home" />
+<Layout title="ASL Research Project">
+  <p>
+    Use this web interface to convert to/from ASL. The navigation links at the top or the buttons
+    below will take you to various pages that use our program to translate.
+  </p>
+  <div class="colrow-md">
+    <a class="as-button" href="/e2a">👋 → 💬<br />English To ASL</a>
+    <a class="as-button" href="/record">📸 👋<br />Record ASL</a>
+    <a class="as-button" href="/a2e">💬 → 👋<br />ASL To English</a>
+  </div>
+</Layout>
+
+<style>
+  div {
+    display: flex;
+    align-content: stretch;
+    height: 30%;
+    gap: var(--2);
+    margin: var(--4) 0;
+  }
+
+  a {
+    height: 100%;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--4);
+    text-align: center;
+  }
+</style>

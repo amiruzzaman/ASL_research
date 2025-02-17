@@ -17,3 +17,4 @@
 - [ ] Directions for Record
 - [ ] Allow saving new words on the backend
 - [ ] SSL Stuff
+- [ ] License?

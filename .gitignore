@@ -6,4 +6,5 @@ __pycache__
 *.pyc
 .models
 *.qcow2
+mprocs.log
 

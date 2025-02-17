@@ -8,8 +8,8 @@ import poseConnections from "./pose_connections.json" with { type: "json" };
 
 import * as THREE from "three";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
-import { LineMaterial } from "three/examples/jsm/Addons.js";
-import { LineSegmentsGeometry } from "three/examples/jsm/Addons.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 
 export type Vec3 = [number, number, number];
 export type Hand = Vec3[];
@@ -31,7 +31,7 @@ const fetchWord = async (word: string): Promise<WordData | null> => {
   }
 };
 
-const seperatePhrase = (input: string): string[] => {
+const separatePhrase = (input: string): string[] => {
   // TODO: Simple splitting for now
   return input.toLowerCase().split(" ");
 };
@@ -42,7 +42,7 @@ export type TranslationRequest = {
 };
 
 const createRequest = async (phrase: string): Promise<TranslationRequest> => {
-  const words = seperatePhrase(phrase);
+  const words = separatePhrase(phrase);
 
   const dataMap: Record<string, WordData> = {};
   const failedWords: string[] = [];
