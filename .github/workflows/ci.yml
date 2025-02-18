@@ -6,11 +6,13 @@ on:
     paths-ignore:
       - ".github/**"
       - "*.md"
+      - justfile
   pull_request:
     branches: [main]
     paths-ignore:
       - ".github/**"
       - "*.md"
+      - justfile
 jobs:
   check-eval:
     name: Eval / Get Checks

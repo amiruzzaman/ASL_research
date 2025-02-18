@@ -54,7 +54,7 @@ in {
           graphics = false;
           diskImage = null;
           sharedDirectories.words = {
-            source = "$WORD_DIR";
+            source = "\${WORD_DIR:-$PROJ_ROOT/words}";
             target = "/word-mnt";
           };
           forwardPorts = [

@@ -123,6 +123,28 @@ npm add NAME
 For both `npm` and `uv` change `add` to `remove` etc. as needed.
 Run `uv --help` or `npm --help` for more info.
 
+### Staging Environment
+
+To get started with staging you can run the `vm` just recipe.
+
+```sh
+just vm
+```
+
+Or without just, set `WORD_DIR` to the path that words should be stored in and
+run the vm directly. (run `mkdir words; export WORD_DIR=$PWD/words` if you're unsure).
+
+```sh
+nix run .#nixosConfigurations.aslVM.config.system.build.vm
+```
+
+This will spin up a "stateless" (except for the `words` directory) VM that hosts
+the web interface on port `8080`. You can forward this port as needed for public
+access.
+
+The `WORD_DIR` environment variable (set to `$PWD/words` by default in the just
+recipe) will hold the word files.
+
 ### Additional Just Recipes
 
 For Nix specifically, you can run `just shell` to get into a dev shell with

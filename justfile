@@ -23,6 +23,7 @@ uv *CMD:
     nix develop --command uv {{CMD}}
 
 # Run a production VM site
-vm:
+vm $PROJ_ROOT=`echo $PWD`:
+    mkdir -p words
     nix run .#nixosConfigurations.aslVM.config.system.build.vm
 
