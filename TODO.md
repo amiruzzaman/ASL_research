@@ -14,7 +14,7 @@
 - [x] Chrome CORS??
 - [ ] Performance improvements
 - [x] Home Page
-- [ ] Directions for Record
-- [ ] Allow saving new words on the backend
+- [x] Directions for Record
+- [x] Allow saving new words on the backend
 - [ ] SSL Stuff
 - [ ] License?

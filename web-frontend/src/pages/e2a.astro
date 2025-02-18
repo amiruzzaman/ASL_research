@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import SpinnerOverlay from "../components/SpinnerOverlay.astro";
 ---
 
 <Layout class="main" title="English to ASL">
@@ -13,6 +14,7 @@ import Layout from "../layouts/Layout.astro";
         class="word-chip"></span>
     </div>
     <div class="wrapper">
+      <SpinnerOverlay id="spinner">Fetching Words</SpinnerOverlay>
       <div id="canvas-parent" class="canvas-parent"></div>
     </div>
     <div class="input-wrapper">
@@ -88,6 +90,11 @@ import Layout from "../layouts/Layout.astro";
 
   .wrapper {
     box-sizing: border-box;
+    position: relative;
+  }
+
+  #spinner {
+    font-size: var(--3);
   }
 
   .canvas-parent {
@@ -156,22 +163,16 @@ import Layout from "../layouts/Layout.astro";
     const wordUiTemplate = document.getElementById("word-template")!;
     const wordList = document.getElementById("word-list")!;
     const canvasParent = document.getElementById("canvas-parent")!;
+    const spinnerElem = document.getElementById("spinner")!;
 
     const ctx = prepareCanvas(canvasParent);
-    let cancelInitAnim = false;
-    parseAndCreateRequest("hello").then((req) => {
-      if (!cancelInitAnim) {
-        renderAsl(ctx, req);
-      }
-    });
-
     submitButton.onclick = async () => {
-      cancelInitAnim = true;
       const input = userInputBox.value.trim();
       if (input.length === 0) return;
 
-      submitButton.setAttribute("disabled", "true");
-      submitButton.textContent = "Fetching Words";
+      submitButton.style.display = "none";
+      spinnerElem.dataset.loading = "true";
+      userInputBox.style.display = "none";
 
       const req = await parseAndCreateRequest(input);
       submitButton.textContent = "Preparing";
@@ -182,9 +183,10 @@ import Layout from "../layouts/Layout.astro";
         setWordActive(i, true);
         lastWord = i;
       });
-      userInputBox.parentNode?.removeChild?.(userInputBox);
       submitButton.removeAttribute("disabled");
       submitButton.textContent = "Restart";
+      submitButton.style.display = "";
+      spinnerElem.dataset.loading = "false";
       submitButton.onclick = () => {
         window.location.reload();
       };

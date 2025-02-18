@@ -291,12 +291,12 @@ h5 {
   }
 }
 
-.flex-row-responsive {
+.colrow-sm {
   flex-direction: column !important;
 }
 
-@media (--md) {
-  .flex-row-responsive {
+@media (--sm) {
+  .colrow-sm {
     flex-direction: row !important;
   }
 }

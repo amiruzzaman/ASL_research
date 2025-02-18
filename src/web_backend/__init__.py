@@ -33,7 +33,7 @@ def process_frames(cap):
             yield msgpack.packb((rh, lh, face, pose))
 
 
-@app.route("/api/word/<string:word>")
+@app.route("/api/word/<string:word>", methods=["GET"])
 def rt_word(word: str):
     path = words_dir.joinpath(f"{word}.msgpack").resolve()
     if path.is_file():
@@ -42,12 +42,39 @@ def rt_word(word: str):
         return Response("Word not found", mimetype="text/plain"), 404
 
 
+@app.route("/api/word/<string:word>", methods=["POST"])
+def rt_upload_word(word: str):
+    if request.content_type == "application/x-msgpack":
+        try:
+            word_data = msgpack.unpackb(request.data)
+            print(len(word_data[0]))
+            if (
+                type(word_data) is list
+                and len(word_data) != 0
+                and type(word_data[0]) is list
+                and len(word_data[0]) == 4
+            ):
+                path = words_dir.joinpath(f"{word}.msgpack").resolve()
+                path.write_bytes(msgpack.packb(word_data))
+                return Response("Created"), 201
+            else:
+                return Response("Word data is not of the right shape"), 400
+        except Exception as e:
+            print(f"Invalid data received\n{e}")
+            return Response("Invalid msgpack sent"), 400
+    else:
+        return Response("Data is not msgpack"), 415
+
+
 @app.route("/api/mark", methods=["POST"])
 def rt_mark():
-    stream = request.data
-    cap = iio.imiter(stream, plugin="pyav", extension=".webm")
-    frames = process_frames(cap)
-    return Response(frames, mimetype="application/x-msgpack")
+    if request.content_type == "video/webm":
+        stream = request.data
+        cap = iio.imiter(stream, plugin="pyav", extension=".webm")
+        frames = process_frames(cap)
+        return Response(frames, mimetype="application/x-msgpack")
+    else:
+        return Response("Expected `video/webm` video!"), 415
 
 
 cors_allow = environ.get("CORS_ORIGIN_ALLOW")
