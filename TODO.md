@@ -17,5 +17,6 @@
 - [x] Directions for Record
 - [x] Allow saving new words on the backend
 - [ ] SSL Stuff
-- [ ] License - AGPLv3
-- [ ] Citation for Repo - Need a list of references, OCID?
+- [x] License - AGPLv3
+- [x] Citation for Repo
+- [ ] Fill out citation document more
