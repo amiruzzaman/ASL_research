@@ -17,4 +17,5 @@
 - [x] Directions for Record
 - [x] Allow saving new words on the backend
 - [ ] SSL Stuff
-- [ ] License?
+- [ ] License - AGPLv3
+- [ ] Citation for Repo

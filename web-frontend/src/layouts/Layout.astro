@@ -26,7 +26,10 @@ const desc = "Convert ASL to English and vice versa by recording yourself.";
   <body>
     <header>
       <nav class="container colrow-md">
-        <a href="/">ASL Research</a>
+        <a class="home-link colrow-md" href="/">
+          <img class="logo" src="/favicon.svg" alt="A rainbow colored hand waving" />
+          ASL Research
+        </a>
         <a href="/e2a">English To ASL</a>
         <a href="/record">Record ASL</a>
         <a href="/a2e">ASL To English</a>
@@ -68,8 +71,22 @@ const desc = "Convert ASL to English and vice versa by recording yourself.";
     font-weight: bold;
   }
 
+  a.home-link {
+    display: flex;
+    align-items: center;
+    gap: var(--1);
+  }
+
   main {
     flex-grow: 1;
+  }
+
+  img.logo {
+    width: var(--4);
+    height: var(--4);
+    padding: 5px;
+    background-color: black;
+    border-radius: 10%;
   }
 
   footer {
