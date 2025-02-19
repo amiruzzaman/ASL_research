@@ -1,0 +1,25 @@
+# This file is not complete, we still need to put our references, ORCIDs, etc.
+# Reference file: https://github.com/citation-file-format/citation-file-format/blob/main/CITATION.cff
+
+$schema: https://citation-file-format.github.io/1.2.0/schema.json
+message: "If you use this code in your research, please cite it using these metadata."
+abstract: Translation of ASL to English and vice versa using ASL Gloss as an intermediate step
+authors:
+  - family-names: Amiruzzaman
+    given-names: Md
+  - family-names: Pham
+    given-names: Alexander
+  - family-names: Dracup
+    given-names: James
+  - family-names: Crocker
+    given-names: Benjamin
+title: ASL 2 English
+license: AGPL-3.0-only
+version: 0.0.1
+keywords:
+  - ASL
+  - transformer
+  - python
+  - mediapipe
+  - flask
+
