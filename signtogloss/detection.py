@@ -18,8 +18,8 @@ if not cap.isOpened():
     print("Cannot open camera")
     exit()
 
-def extract_landmarks(landmark):
-    return [(landmark.x, landmark.y, landmark.z) for landmark in results.face_landmarks.landmark] 
+def extract_landmarks(landmarks):
+    return [(landmark.x, landmark.y, landmark.z) for landmark in landmarks] 
 
 while cap.isOpened():
     ret, frame = cap.read()
