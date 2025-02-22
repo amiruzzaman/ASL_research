@@ -52,7 +52,7 @@ def inference(args):
         print("Loading model...")
         checkpoint = torch.load(args.model_path)
         model.load_state_dict(checkpoint['model_state_dict'])
-
+    
     model.eval()
     
     while True:
@@ -71,7 +71,7 @@ def inference(args):
         translated_tokens = greedy_decode(tokens, mask, model, gloss_vocab, text_vocab).flatten()
         translated = " ".join([text_id[token] for token in translated_tokens.tolist()]).replace("<sos>", "").replace("<eos>", "")
         print(f"Translated Sequence: {translated[1:]}\n")
-
+    
     
 def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab):
     # Set model to training mode 
@@ -238,7 +238,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--model_path', type=str)
     parser.add_argument('-b', '--batch', type=int, default=32)
-    
+        
     # Translation Model Arguments
     parser.add_argument('--dmodel', type=int, default=512)
     parser.add_argument('--heads', type=int, default=8)

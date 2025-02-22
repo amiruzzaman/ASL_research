@@ -128,7 +128,7 @@ def collate_fn(batch):
 def get_data(batch_size, random_state=29, test_size=0.1):
     """
     Loads the ASLG-PC12 Dataset and creates a Dataloader for it.
-
+    
     Parameters:
         batch_size: How many items each batch will contain
         random_state: Controls the shuffling applied on the data during splitting.  
