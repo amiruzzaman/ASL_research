@@ -66,7 +66,7 @@ class ASLDataset(Dataset):
         # Split sentence of ASL gloss and English text to a list of words (Adds the SOS and EOS also)
         gloss_words = ["<sos>"] + gloss.split() + ["<eos>"]
         text_words = ["<sos>"] + text.split() + ["<eos>"]
-        
+            
         # Convert those list of words to tokens/indices in the vocab
         gloss_tokens = torch.tensor([self.gloss_vocab[word] for word in gloss_words])
         text_tokens = torch.tensor([self.text_vocab[word] for word in text_words])

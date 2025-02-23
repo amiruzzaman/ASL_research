@@ -1,6 +1,11 @@
+import sys
+sys.path.insert(0, '.')
+
 import torch
 import torch.nn as nn
 from positionalencoding import PositionalEncoding
+from utils.utils import generate_square_subsequent_mask
+from utils.utils import create_mask
 
 class Translator(nn.Module):
     def __init__(self, src_vocab_size, trg_vocab_size, d_model=512, heads=8, num_encoders=1, num_decoders=1, dropout=0.1, max_len=1000, activation="relu"):
@@ -108,4 +113,29 @@ class Translator(nn.Module):
         out = self.transformer.decoder(trg_pos, memory, trg_mask)
 
         return self.softmax(self.linear(out))
+    
+
+    def greedy_decode(self, src, src_mask, src_vocab, trg_vocab, device, max_len=10):
+        # Convert the sequences from (Sequence) to (Batch, Sequence)
+        src = src.unsqueeze(0).to(device)
+
+        # Feed the source sequence and its mask into the transformer's encoder
+        memory = self.encode(src, src_mask)
+
+        # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
+        sequence = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(device)
+
+        for _ in range(max_len):
+            mask = generate_square_subsequent_mask(sequence.shape[-1], device).type(torch.bool).to(device)
+            
+            # Feeds the target and retrieves a vector (Batch, Sequence Size, Target Vocab Size)
+            out = self.decode(sequence, memory, mask)
+            next_word = torch.argmax(out[:, -1], dim=-1)
+
+            # Concatenate the predicted token to the output sequence
+            sequence = torch.cat([sequence, torch.ones(1, 1).fill_(next_word.item()).type(torch.long).to(device)], dim=1)
+
+            if next_word == trg_vocab["<eos>"]:
+                break
         
+        return sequence

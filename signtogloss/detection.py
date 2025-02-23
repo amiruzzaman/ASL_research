@@ -1,8 +1,12 @@
+import sys
+sys.path.insert(0, '.')
+
 import cv2 as cv
 import mediapipe as mp
+import torch
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-
+from utils.utils import extract_landmarks
 
 cap = cv.VideoCapture(0)
 mp_holistic = mp.solutions.holistic
@@ -17,9 +21,6 @@ holistic_model = mp_holistic.Holistic(
 if not cap.isOpened():
     print("Cannot open camera")
     exit()
-
-def extract_landmarks(landmarks):
-    return [(landmark.x, landmark.y, landmark.z) for landmark in landmarks] 
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -47,16 +48,25 @@ while cap.isOpened():
       mp_drawing.DrawingSpec(color=(255,0,255), thickness=1, circle_radius=1),
       mp_drawing.DrawingSpec(color=(0,255,255), thickness=1, circle_radius=1)
     )
+    
+    data = None
+    if results.left_hand_landmarks and results.right_hand_landmarks and results.face_landmarks:
+        data = torch.cat([extract_landmarks(results.left_hand_landmarks), 
+                        extract_landmarks(results.right_hand_landmarks), 
+                        extract_landmarks(results.face_landmarks)])
  
     # Drawing Right hand Land Marks
     mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
  
     # Drawing Left hand Land Marks
     mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-     
+
+    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
+
+    #print(data)
     cv.imshow('frame', image)
     keyCode = cv.waitKey(1)
-
+    print(data)
     if cv.getWindowProperty('frame', cv.WND_PROP_VISIBLE) < 1:
         break
 

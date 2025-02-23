@@ -1,6 +1,9 @@
+import sys
+sys.path.insert(0, '.')
+
 import time
 from dataprocess import get_data
-from glosstoenglish import Translator
+from glosstoenglish.model import Translator
 import warnings
 import argparse
 
@@ -10,38 +13,13 @@ import torch.optim as optim
 
 from tqdm import tqdm 
 
+from utils.utils import create_mask
+from utils.utils import generate_square_subsequent_mask
+
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 warnings.filterwarnings("ignore")
 
-
-def beam_search():
-    pass
-
-def greedy_decode(src, src_mask, model, src_vocab, trg_vocab, max_len=10):
-    # Convert the sequences from (Sequence) to (Batch, Sequence)
-    src = src.unsqueeze(0).to(DEVICE)
-
-    # Feed the source sequence and its mask into the transformer's encoder
-    memory = model.encode(src, src_mask)
-
-    # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
-    sequence = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(DEVICE)
-
-    for _ in range(max_len):
-        mask = generate_square_subsequent_mask(sequence.shape[-1]).type(torch.bool).to(DEVICE)
-        
-        # Feeds the target and retrieves a vector (Batch, Sequence Size, Target Vocab Size)
-        out = model.decode(sequence, memory, mask)
-        next_word = torch.argmax(out[:, -1], dim=-1)
-
-        # Concatenate the predicted token to the output sequence
-        sequence = torch.cat([sequence, torch.ones(1, 1).fill_(next_word.item()).type(torch.long).to(DEVICE)], dim=1)
-
-        if next_word == trg_vocab["<eos>"]:
-            break
-    
-    return sequence
 
 def inference(args):
     _, _, gloss_vocab, gloss_id, text_vocab, text_id = get_data(args.batch)
@@ -52,7 +30,7 @@ def inference(args):
         print("Loading model...")
         checkpoint = torch.load(args.model_path)
         model.load_state_dict(checkpoint['model_state_dict'])
-    
+
     model.eval()
     
     while True:
@@ -68,10 +46,10 @@ def inference(args):
         mask = torch.zeros(num_tokens, num_tokens).type(torch.bool)
 
         # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string 
-        translated_tokens = greedy_decode(tokens, mask, model, gloss_vocab, text_vocab).flatten()
+        translated_tokens = model.greedy_decode(tokens, mask, gloss_vocab, text_vocab, device=DEVICE).flatten()
         translated = " ".join([text_id[token] for token in translated_tokens.tolist()]).replace("<sos>", "").replace("<eos>", "")
         print(f"Translated Sequence: {translated[1:]}\n")
-    
+
     
 def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab):
     # Set model to training mode 
@@ -87,7 +65,7 @@ def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab):
         trg_input = trg[:, :-1]
 
         # Create the masks for the source and target
-        src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg_input, trg_vocab["<pad>"])
+        src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg_input, trg_vocab["<pad>"], DEVICE)
 
         # Feed the inputs through the translation model
         # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model 
@@ -125,7 +103,7 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
         trg_input = trg[:, :-1]
 
         # Create the masks for the source and target
-        src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg_input, trg_vocab["<pad>"])
+        src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg_input, trg_vocab["<pad>"], DEVICE)
 
         # Feed the inputs through the translation model
         # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model 
@@ -145,27 +123,6 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
 
     # Returns the average loss
     return losses / len(list(data))
-
-
-def create_mask(src, trg, pad_idx):
-    # Get sequence length
-    src_seq_len = src.shape[1]
-    tgt_seq_len = trg.shape[1]
-
-    # Generate the mask
-    tgt_mask = generate_square_subsequent_mask(tgt_seq_len)
-    src_mask = torch.zeros((src_seq_len, src_seq_len),device=DEVICE).type(torch.bool)
-
-    # Overlay the mask over the original input
-    src_padding_mask = (src == pad_idx)
-    tgt_padding_mask = (trg == pad_idx)
-    return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
-
-
-def generate_square_subsequent_mask(size):
-    mask = (torch.triu(torch.ones((size, size), device=DEVICE)) == 1)
-    mask = mask.float().masked_fill(mask == 0, -torch.inf).masked_fill(mask == 1, float(0.0))
-    return mask
 
 
 def train(args):
@@ -247,7 +204,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--save_path', type=str, default=f"./")
     args = parser.parse_args()
-
+    
     # Either train the model or use the model
     if args.train:
         train(args)
