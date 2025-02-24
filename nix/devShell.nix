@@ -2,6 +2,7 @@
   pkgs,
   lib,
   outputs,
+  ...
 }: let
   editableOverlay = outputs.lib.workspace.mkEditablePyprojectOverlay {
     root = "$REPO_ROOT";
@@ -18,9 +19,8 @@
       });
     })
   ]);
-  virtualenv = editablePythonSet.mkVirtualEnv "hello-world-dev-env" outputs.lib.workspace.deps.all;
-in
-  pkgs.mkShell {
+  virtualenv = editablePythonSet.mkVirtualEnv "asl-research-dev-env" outputs.lib.workspace.deps.all;
+in pkgs.mkShell {
     packages = with pkgs; [
       nodejs_23
       uv

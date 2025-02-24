@@ -3,7 +3,7 @@ _default:
 
 # Run the development server in mprocs
 dev:
-    just run "mprocs --names 'Frontend,Backend' 'cd web-frontend; npm run dev' 'python src/web_backend/__init__.py'"
+    nix develop --command mprocs --names 'Frontend,Backend' 'cd web-frontend; npm run dev' 'python src/web_backend/__init__.py'
 
 # Run a development shell
 shell:
