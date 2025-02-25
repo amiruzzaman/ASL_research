@@ -7,4 +7,4 @@ tqdm
 scikit-learn
 mediapipe
 opencv-python
- msvc-runtime
+msvc-runtime

@@ -1,9 +1,8 @@
 import sys
-sys.path.insert(0, '.')
 
 import time
 from dataprocess import get_data
-from glosstoenglish.model import Translator
+from models.glosstoenglish.model import Translator
 import warnings
 import argparse
 
@@ -13,8 +12,8 @@ import torch.optim as optim
 
 from tqdm import tqdm 
 
-from utils.utils import create_mask
-from utils.utils import generate_square_subsequent_mask
+from models.utils import create_mask
+from models.utils import generate_square_subsequent_mask
 
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -186,7 +185,7 @@ def train(args):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ASLGlossModel")
-
+    
     # Training or inference mode
     parser.add_argument('--train', action='store_true')
     
