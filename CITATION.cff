@@ -28,6 +28,7 @@ keywords:
   - transformer
   - python
   - mediapipe
+  - lstm
   - pytorch
   - torch
   - flask
