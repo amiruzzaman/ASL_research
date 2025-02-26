@@ -2,7 +2,7 @@ import sys
 
 import time
 from dataprocess import get_data
-from models.glosstoenglish.model import Translator
+from models.glosstoenglish.model import GlossToEnglishModel
 import warnings
 import argparse
 
@@ -22,14 +22,14 @@ warnings.filterwarnings("ignore")
 
 def inference(args):
     _, _, gloss_vocab, gloss_id, text_vocab, text_id = get_data(args.batch)
-    model = Translator(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders).to(DEVICE)
+    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders).to(DEVICE)
 
     # If the save data argument is not null, then we load
     if args.model_path:
         print("Loading model...")
         checkpoint = torch.load(args.model_path)
         model.load_state_dict(checkpoint['model_state_dict'])
-
+    
     model.eval()
     
     while True:
@@ -108,7 +108,7 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
         # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model 
         # instead of the model's output in the prior timestep
         out = model(src, trg_input, src_mask, trg_mask, src_padding_mask, trg_padding_mask, src_padding_mask)
-
+        
         # For the criterion function to work, we have to concatenate all the batches together for it to work
         # The shape of the tensor will turn from (Batch, Sequence Size, Target Vocab Size) 
         # to (Batch * Sequence Size, Target Vocab Size)

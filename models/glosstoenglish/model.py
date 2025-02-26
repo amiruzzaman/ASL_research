@@ -6,7 +6,7 @@ from positionalencoding import PositionalEncoding
 from models.utils import generate_square_subsequent_mask
 from models.utils import create_mask
 
-class Translator(nn.Module):
+class GlossToEnglishModel(nn.Module):
     def __init__(self, src_vocab_size, trg_vocab_size, d_model=512, heads=8, num_encoders=1, num_decoders=1, dropout=0.1, max_len=1000, activation="relu"):
         """
         Creates the translator nn module.
