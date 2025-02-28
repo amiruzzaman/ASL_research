@@ -30,7 +30,7 @@ class GlossToEnglishModel(nn.Module):
             activation: The activation function for the layers in the model        
         """
 
-        super(Translator, self).__init__()
+        super(GlossToEnglishModel, self).__init__()
 
         # Embedding layers for the source and target inputs
         self.src_embedding = nn.Embedding(src_vocab_size, d_model)

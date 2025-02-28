@@ -50,12 +50,12 @@ def inference(args):
         print(f"Translated Sequence: {translated[1:]}\n")
 
     
-def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab):
+def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
     # Set model to training mode 
     model.train()
     
     # Go through batches in the epoch
-    for src, trg in tqdm(data):
+    for src, trg in tqdm(data, desc= f"Epoch {epoch}"):
         # Convert source and target inputs into its respective device's tensors (CPU or GPU)
         src = src.to(DEVICE)
         trg = trg.to(DEVICE)
@@ -90,7 +90,7 @@ def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab):
         optimizer.zero_grad()
 
 def validate(model, data, criterion, src_vocab, trg_vocab):
-    losses = 0
+    losses, correct, wrong = 0, 0, 0
     model.eval()
     # Go through batches in the epoch
     for src, trg in tqdm(data):
@@ -118,10 +118,17 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
         # For the loss function, the reason why the expected is the target sequence offsetted forward by one is
         # because it allows us to compare the next word the model predicts to the actual next word in the sequence  
         loss = criterion(actual, expected)
-        losses += loss
+        losses += loss.item()
 
-    # Returns the average loss
-    return losses / len(list(data))
+        correct += (actual.argmax(dim=1) == expected).sum().item()
+        wrong += (actual.argmax(dim=1) != expected).sum().item()
+        
+    losses /= len(data)
+    correct /= correct + wrong
+    print(f"Valid Accuracy: {(100*correct):>0.1f}%, Valid Avg loss: {losses:>8f}")
+
+    return losses
+    
 
 
 def train(args):
@@ -130,28 +137,32 @@ def train(args):
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
     curr_epoch = 1
-    model = Translator(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders).to(DEVICE)
-    criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"])
+    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders).to(DEVICE)
+    criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"]).to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=1e-9)
-    best_loss = -torch.inf
-
+    best_loss = torch.inf
+    
     # If the save data argument is not null, then we load the data to continue training
     if args.model_path:
         print("Loading checkpoint...")
         checkpoint = torch.load(args.model_path, weights_only=False)
 
-        curr_epoch = checkpoint['epoch']
+        curr_epoch = checkpoint['epoch'] + 1
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         criterion = checkpoint['criterion']
         best_loss = checkpoint['best_loss']
 
+    print("Starting Performance: ")
+    validate(model, test_dl, criterion, gloss_vocab, text_vocab)
+    print()
+
     for epoch in range(curr_epoch, EPOCHS + 1):
         # Train through the entire training dataset and keep track of total time
         start_time = time.time()
-        train_loss = train_epoch(model, train_dl, optimizer, criterion, gloss_vocab, text_vocab)
+        train_loss = train_epoch(model, train_dl, optimizer, criterion, gloss_vocab, text_vocab, epoch)
         total_time = time.time() - start_time
-
+        
         # Goes through the validation dataset 
         valid_loss = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
 
@@ -175,12 +186,9 @@ def train(args):
                     'optimizer_state_dict': optimizer.state_dict(),
                     'criterion': criterion,
                     'best_loss': best_loss
-                    }, args.save_path + f"epoch_{epoch}.pt")
+                    }, args.save_path + f"/epoch_{epoch}.pt")
 
-        print(f"Epoch: {epoch}")
-        print(f"Train Loss: {train_loss:.3f}")
-        print(f"Valid Loss: {valid_loss:.3f}")
-        print(f"Epoch Time: {total_time:.1f} seconds")
+        print(f"Epoch Time: {total_time:.1f} seconds\n")
 
     
 if __name__ == "__main__":
@@ -209,5 +217,4 @@ if __name__ == "__main__":
         train(args)
     else:
         inference(args)
-
 
