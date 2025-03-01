@@ -1,12 +1,13 @@
 import torch
 
+
 def create_mask(src, trg, pad_idx, device):
     # Get sequence length
     src_seq_len = src.shape[1]
-    tgt_seq_len = trg.shape[1]
+    trg_seq_len = trg.shape[1]
 
     # Generate the mask
-    tgt_mask = generate_square_subsequent_mask(tgt_seq_len, device)
+    tgt_mask = generate_square_subsequent_mask(trg_seq_len, device)
     src_mask = torch.zeros((src_seq_len, src_seq_len),device=device).type(torch.bool)
 
     # Overlay the mask over the original input

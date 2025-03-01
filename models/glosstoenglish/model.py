@@ -111,7 +111,7 @@ class GlossToEnglishModel(nn.Module):
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
         out = self.transformer.decoder(trg_pos, memory, trg_mask)
 
-        return self.softmax(self.linear(out))
+        return self.softmax(self.linear(out[:, -1]))
     
 
     def greedy_decode(self, src, src_mask, src_vocab, trg_vocab, device, max_len=10):
@@ -129,12 +129,63 @@ class GlossToEnglishModel(nn.Module):
             
             # Feeds the target and retrieves a vector (Batch, Sequence Size, Target Vocab Size)
             out = self.decode(sequence, memory, mask)
-            next_word = torch.argmax(out[:, -1], dim=-1)
+            _, next_word = torch.max(out, dim=1)
+            next_word = next_word.item()
 
             # Concatenate the predicted token to the output sequence
-            sequence = torch.cat([sequence, torch.ones(1, 1).fill_(next_word.item()).type(torch.long).to(device)], dim=1)
+            sequence = torch.cat([sequence, torch.ones(1, 1).fill_(next_word).type(torch.long).to(device)], dim=1)
 
             if next_word == trg_vocab["<eos>"]:
                 break
-        
+                
         return sequence
+    
+
+    def beam_search(self, src, src_mask, src_vocab, trg_vocab, device, max_len=10, beam_size=15):
+        # Convert the sequences from (Sequence) to (Batch, Sequence)
+        src = src.unsqueeze(0).to(device)
+
+        # Feed the source sequence and its mask into the transformer's encoder
+        memory = self.encode(src, src_mask)
+
+        # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
+        start = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(device)
+        candidates = [(start, 0)]
+
+        for _ in range(max_len):
+            new_candidates = []
+
+            for candidate, score in candidates:
+                if candidate[0, -1].item() == trg_vocab["<eos>"]:
+                    continue
+
+                mask = generate_square_subsequent_mask(candidate.shape[-1], device).type(torch.bool).to(device)
+
+                out = self.decode(candidate, memory, mask)
+                top_k_prob, top_k_idx = torch.topk(out, beam_size, dim=1)
+
+                # For each probability, get the token and its accompanying probability
+                for i in range(beam_size):
+                    token = top_k_idx[:, i]
+                    token_prob = top_k_prob[:, i]
+                    
+                    new_candidate = torch.cat([candidate, torch.tensor([[token]])], dim=1)
+                    new_prob = score + token_prob
+
+                    new_candidates.append((new_candidate, new_prob))
+            
+            candidates = sorted(new_candidates, key=lambda candidate: candidate[1], reverse=True)
+            candidates = candidates[:beam_size]
+
+            if all(candidate[0, -1].item() == trg_vocab["<eos>"] for candidate, _ in candidates):
+                break
+        
+        sequence, _ = candidates[0]
+        return sequence
+
+
+
+
+
+                    
+

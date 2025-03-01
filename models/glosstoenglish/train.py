@@ -27,9 +27,9 @@ def inference(args):
     # If the save data argument is not null, then we load
     if args.model_path:
         print("Loading model...")
-        checkpoint = torch.load(args.model_path)
+        checkpoint = torch.load(args.model_path, weights_only=False)
         model.load_state_dict(checkpoint['model_state_dict'])
-    
+
     model.eval()
     
     while True:
@@ -41,11 +41,13 @@ def inference(args):
         
         # Turns the string input into a tensor containing tokens 
         tokens = torch.tensor([gloss_vocab[word if word in gloss_vocab else "<unk>"] for word in sequence.split()])
+        tokens = torch.cat([torch.tensor([gloss_vocab["<sos>"]]), tokens, torch.tensor([gloss_vocab["<eos>"]])])
+        print(tokens)
         num_tokens = tokens.shape[0]
         mask = torch.zeros(num_tokens, num_tokens).type(torch.bool)
-
+        
         # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string 
-        translated_tokens = model.greedy_decode(tokens, mask, gloss_vocab, text_vocab, device=DEVICE).flatten()
+        translated_tokens = model.beam_search(tokens, mask, gloss_vocab, text_vocab, device=DEVICE, max_len=num_tokens+5).flatten()
         translated = " ".join([text_id[token] for token in translated_tokens.tolist()]).replace("<sos>", "").replace("<eos>", "")
         print(f"Translated Sequence: {translated[1:]}\n")
 
@@ -93,7 +95,7 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
     losses, correct, wrong = 0, 0, 0
     model.eval()
     # Go through batches in the epoch
-    for src, trg in tqdm(data):
+    for src, trg in tqdm(data, desc=f"Validating"):
         # Convert source and target inputs into its respective device's tensors (CPU or GPU)
         src = src.to(DEVICE)
         trg = trg.to(DEVICE)
@@ -120,14 +122,19 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
         loss = criterion(actual, expected)
         losses += loss.item()
 
+        # Calculate if each sequence in each batch is equal to the expected sequence
+        # correct += (out.argmax(dim=2) == trg[:, 1:]).all(dim=1).sum().item()
+        # wrong += (out.argmax(dim=2) != trg[:, 1:]).all(dim=1).sum().item()
+
+        # Calculate if each word in all batches are equal to the expected sequence
         correct += (actual.argmax(dim=1) == expected).sum().item()
         wrong += (actual.argmax(dim=1) != expected).sum().item()
-        
+
     losses /= len(data)
     correct /= correct + wrong
-    print(f"Valid Accuracy: {(100*correct):>0.1f}%, Valid Avg loss: {losses:>8f}")
+    print(f"\nValid Accuracy: {(100*correct):>0.1f}%, Valid Avg loss: {losses:>8f}")
 
-    return losses
+    return losses, correct
     
 
 
@@ -141,7 +148,7 @@ def train(args):
     criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"]).to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=1e-9)
     best_loss = torch.inf
-    
+
     # If the save data argument is not null, then we load the data to continue training
     if args.model_path:
         print("Loading checkpoint...")
@@ -164,7 +171,7 @@ def train(args):
         total_time = time.time() - start_time
         
         # Goes through the validation dataset 
-        valid_loss = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
+        valid_loss, correct = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
 
         # If the average loss from testing the validation data is smallest than the best model at that point,
         # Then we save the current model 
@@ -177,7 +184,7 @@ def train(args):
                     'optimizer_state_dict': optimizer.state_dict(),
                     'criterion': criterion,
                     'best_loss': best_loss
-                    }, args.save_path + "best.pt")
+                    }, args.save_path + "/best.pt")
 
         # Saves model's data after current epoch (Checkpoint system)
         torch.save({
