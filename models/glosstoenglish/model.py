@@ -44,7 +44,7 @@ class GlossToEnglishModel(nn.Module):
         
         self.linear = nn.Linear(d_model, trg_vocab_size)
         self.softmax = nn.Softmax(dim=-1)
-
+        
     def forward(self, src, trg, src_mask, trg_mask, src_padding_mask, trg_padding_mask, memory_padding_mask):
         """
         Feeds the sequences of ASL gloss tokens with their accompanying English translation
@@ -141,7 +141,7 @@ class GlossToEnglishModel(nn.Module):
         return sequence
     
 
-    def beam_search(self, src, src_mask, src_vocab, trg_vocab, device, max_len=10, beam_size=15):
+    def beam_search(self, src, src_mask, src_vocab, trg_vocab, device, max_len=10, beam_size=25):
         # Convert the sequences from (Sequence) to (Batch, Sequence)
         src = src.unsqueeze(0).to(device)
 
@@ -156,6 +156,7 @@ class GlossToEnglishModel(nn.Module):
             new_candidates = []
 
             for candidate, score in candidates:
+                # We do not want to expand current candidate, if the candidates's sequence reaches <eos>
                 if candidate[0, -1].item() == trg_vocab["<eos>"]:
                     continue
 
@@ -163,7 +164,7 @@ class GlossToEnglishModel(nn.Module):
 
                 out = self.decode(candidate, memory, mask)
                 top_k_prob, top_k_idx = torch.topk(out, beam_size, dim=1)
-
+                
                 # For each probability, get the token and its accompanying probability
                 for i in range(beam_size):
                     token = top_k_idx[:, i]
@@ -173,7 +174,7 @@ class GlossToEnglishModel(nn.Module):
                     new_prob = score + token_prob
 
                     new_candidates.append((new_candidate, new_prob))
-            
+
             candidates = sorted(new_candidates, key=lambda candidate: candidate[1], reverse=True)
             candidates = candidates[:beam_size]
 

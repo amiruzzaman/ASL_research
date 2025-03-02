@@ -9,6 +9,7 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 
 from tqdm import tqdm 
 
@@ -42,12 +43,17 @@ def inference(args):
         # Turns the string input into a tensor containing tokens 
         tokens = torch.tensor([gloss_vocab[word if word in gloss_vocab else "<unk>"] for word in sequence.split()])
         tokens = torch.cat([torch.tensor([gloss_vocab["<sos>"]]), tokens, torch.tensor([gloss_vocab["<eos>"]])])
-        print(tokens)
+        
         num_tokens = tokens.shape[0]
         mask = torch.zeros(num_tokens, num_tokens).type(torch.bool)
         
         # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string 
-        translated_tokens = model.beam_search(tokens, mask, gloss_vocab, text_vocab, device=DEVICE, max_len=num_tokens+5).flatten()
+        translated_tokens = None
+        if args.greedy:
+            translated_tokens = model.greedy_decode(tokens, mask, gloss_vocab, text_vocab, device=DEVICE, max_len=num_tokens+5).flatten()
+        else:
+            translated_tokens = model.beam_search(tokens, mask, gloss_vocab, text_vocab, device=DEVICE, max_len=num_tokens+5, beam_size=args.beam_size).flatten()
+        
         translated = " ".join([text_id[token] for token in translated_tokens.tolist()]).replace("<sos>", "").replace("<eos>", "")
         print(f"Translated Sequence: {translated[1:]}\n")
 
@@ -55,6 +61,7 @@ def inference(args):
 def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
     # Set model to training mode 
     model.train()
+    losses = 0
     
     # Go through batches in the epoch
     for src, trg in tqdm(data, desc= f"Epoch {epoch}"):
@@ -78,18 +85,23 @@ def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
         # to (Batch * Sequence Size, Target Vocab Size)
         actual = out.reshape(-1, out.shape[-1])
         expected = trg[:, 1:].reshape(-1)
-        
+
         # We zero the gradients of the model, calculate the total loss of the sample
         # Then compute the gradient vector for the model over the loss
 
         # For the loss function, the reason why the expected is the target sequence offsetted forward by one is
         # because it allows us to compare the next word the model predicts to the actual next word in the sequence  
         loss = criterion(actual, expected)
+        losses += loss.item()
         loss.backward()
-
+        
         # Apply the gradient vector on the trainable parameters in the model and reset the gradients
         optimizer.step()
         optimizer.zero_grad()
+
+    losses /= len(data)
+    print(f"Training Average loss: {losses:>8f}")
+    return losses
 
 def validate(model, data, criterion, src_vocab, trg_vocab):
     losses, correct, wrong = 0, 0, 0
@@ -132,7 +144,7 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
 
     losses /= len(data)
     correct /= correct + wrong
-    print(f"\nValid Accuracy: {(100*correct):>0.1f}%, Valid Avg loss: {losses:>8f}")
+    print(f"Valid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {losses:>8f}")
 
     return losses, correct
     
@@ -147,28 +159,27 @@ def train(args):
     model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders).to(DEVICE)
     criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"]).to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=1e-9)
+    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.5, total_iters=30)
     best_loss = torch.inf
 
     # If the save data argument is not null, then we load the data to continue training
     if args.model_path:
         print("Loading checkpoint...")
         checkpoint = torch.load(args.model_path, weights_only=False)
-
+        
         curr_epoch = checkpoint['epoch'] + 1
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         criterion = checkpoint['criterion']
         best_loss = checkpoint['best_loss']
 
-    print("Starting Performance: ")
-    validate(model, test_dl, criterion, gloss_vocab, text_vocab)
-    print()
 
+    print(f"Starting Performance: \nValid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
     for epoch in range(curr_epoch, EPOCHS + 1):
         # Train through the entire training dataset and keep track of total time
         start_time = time.time()
         train_loss = train_epoch(model, train_dl, optimizer, criterion, gloss_vocab, text_vocab, epoch)
-        total_time = time.time() - start_time
         
         # Goes through the validation dataset 
         valid_loss, correct = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
@@ -182,6 +193,7 @@ def train(args):
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
                     'criterion': criterion,
                     'best_loss': best_loss
                     }, args.save_path + "/best.pt")
@@ -191,10 +203,16 @@ def train(args):
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
                     'criterion': criterion,
                     'best_loss': best_loss
                     }, args.save_path + f"/epoch_{epoch}.pt")
 
+        scheduler.step()
+        total_time = time.time() - start_time
+
+        print(f"\nTraining Average loss: {train_loss:>8f}")
+        print(f"Valid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}")
         print(f"Epoch Time: {total_time:.1f} seconds\n")
 
     
@@ -216,6 +234,8 @@ if __name__ == "__main__":
     parser.add_argument('--encoders', type=int, default=2)
     parser.add_argument('--decoders', type=int, default=2)
 
+    parser.add_argument('--greedy', action='store_true')
+    parser.add_argument('--beam_size', type=int, default=25)
     parser.add_argument('--save_path', type=str, default=f"./")
     args = parser.parse_args()
     

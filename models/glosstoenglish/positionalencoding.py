@@ -17,7 +17,7 @@ class PositionalEncoding(nn.Module):
         self.pe = torch.zeros(max_len, d_model)   
         pos = torch.arange(0, max_len).unsqueeze(dim=1)
         dim = torch.arange(0, d_model, 2)
-
+        
         # For even position indices, we utilize the sine function
         # For odd indices, we utilize the cosine function
         self.pe[:, 0::2] = torch.sin(pos / (10000 ** (dim / d_model)))

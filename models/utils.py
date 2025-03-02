@@ -14,7 +14,7 @@ def create_mask(src, trg, pad_idx, device):
     src_padding_mask = (src == pad_idx)
     tgt_padding_mask = (trg == pad_idx)
     return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
-
+    
 
 def generate_square_subsequent_mask(size, device):
     mask = (torch.triu(torch.ones((size, size), device=device)) == 1)
