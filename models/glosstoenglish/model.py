@@ -7,7 +7,7 @@ from models.utils import generate_square_subsequent_mask
 from models.utils import create_mask
 
 class GlossToEnglishModel(nn.Module):
-    def __init__(self, src_vocab_size, trg_vocab_size, d_model=512, heads=8, num_encoders=1, num_decoders=1, dropout=0.1, max_len=1000, activation="relu"):
+    def __init__(self, src_vocab_size, trg_vocab_size, d_model=512, heads=8, num_encoders=1, num_decoders=1, dropout=0.1, max_len=1000, activation="relu", device='cpu'):
         """
         Creates the translator nn module.
 
@@ -33,16 +33,16 @@ class GlossToEnglishModel(nn.Module):
         super(GlossToEnglishModel, self).__init__()
 
         # Embedding layers for the source and target inputs
-        self.src_embedding = nn.Embedding(src_vocab_size, d_model)
-        self.trg_embedding = nn.Embedding(trg_vocab_size, d_model)
-        
+        self.src_embedding = nn.Embedding(src_vocab_size, d_model, device=device).to(device)
+        self.trg_embedding = nn.Embedding(trg_vocab_size, d_model, device=device).to(device)
+
         # Positional encodings for the embedding vectors
-        self.pos_encoding = PositionalEncoding(d_model, dropout, max_len)
+        self.pos_encoding = PositionalEncoding(d_model, dropout, max_len, device=device).to(device)
 
         self.transformer = nn.Transformer(d_model=d_model, nhead=heads, num_encoder_layers=num_encoders, 
-            num_decoder_layers=num_decoders, dropout=dropout, activation=activation, batch_first=True)
+            num_decoder_layers=num_decoders, dropout=dropout, activation=activation, batch_first=True).to(device)
         
-        self.linear = nn.Linear(d_model, trg_vocab_size)
+        self.linear = nn.Linear(d_model, trg_vocab_size).to(device)
         self.softmax = nn.Softmax(dim=-1)
         
     def forward(self, src, trg, src_mask, trg_mask, src_padding_mask, trg_padding_mask, memory_padding_mask):
@@ -75,8 +75,8 @@ class GlossToEnglishModel(nn.Module):
 
         # Feeds the output of the decoders into a linear function that output a vector of size trg_vocal_size 
         # and then applys the softmax activation function on it to receive a probability distribution for each sequence in the batch
-        return self.softmax(self.linear(out))
-    
+        return self.linear(out)
+
 
     def encode(self, src, src_mask):
         """
@@ -111,16 +111,16 @@ class GlossToEnglishModel(nn.Module):
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
         out = self.transformer.decoder(trg_pos, memory, trg_mask)
 
-        return self.softmax(self.linear(out[:, -1]))
+        return self.linear(out[:, -1])
     
 
-    def greedy_decode(self, src, src_mask, src_vocab, trg_vocab, device, max_len=10):
+    def greedy_decode(self, src, src_mask, src_vocab, trg_vocab, device, max_len=100):
         # Convert the sequences from (Sequence) to (Batch, Sequence)
         src = src.unsqueeze(0).to(device)
 
         # Feed the source sequence and its mask into the transformer's encoder
-        memory = self.encode(src, src_mask)
-
+        memory = self.encode(src)
+        
         # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
         sequence = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(device)
 
@@ -141,7 +141,7 @@ class GlossToEnglishModel(nn.Module):
         return sequence
     
 
-    def beam_search(self, src, src_mask, src_vocab, trg_vocab, device, max_len=10, beam_size=25):
+    def beam_search(self, src, src_mask, src_vocab, trg_vocab, device, max_len=100, beam_size=25, temperature=1.0):
         # Convert the sequences from (Sequence) to (Batch, Sequence)
         src = src.unsqueeze(0).to(device)
 
@@ -151,7 +151,7 @@ class GlossToEnglishModel(nn.Module):
         # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
         start = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(device)
         candidates = [(start, 0)]
-
+        
         for _ in range(max_len):
             new_candidates = []
 
@@ -162,19 +162,21 @@ class GlossToEnglishModel(nn.Module):
 
                 mask = generate_square_subsequent_mask(candidate.shape[-1], device).type(torch.bool).to(device)
 
-                out = self.decode(candidate, memory, mask)
+                logits = self.decode(candidate, memory, mask)
+                scaled_logits = logits / temperature
+                out = self.softmax(scaled_logits)
                 top_k_prob, top_k_idx = torch.topk(out, beam_size, dim=1)
                 
                 # For each probability, get the token and its accompanying probability
                 for i in range(beam_size):
                     token = top_k_idx[:, i]
-                    token_prob = top_k_prob[:, i]
-                    
-                    new_candidate = torch.cat([candidate, torch.tensor([[token]])], dim=1)
-                    new_prob = score + token_prob
+                    token_prob = torch.log(top_k_prob[:, i])
 
-                    new_candidates.append((new_candidate, new_prob))
+                    new_candidate = torch.cat([candidate, torch.tensor([[token]]).to(device)], dim=-1).to(device)
+                    new_score = score + token_prob
 
+                    new_candidates.append((new_candidate, new_score))
+            
             candidates = sorted(new_candidates, key=lambda candidate: candidate[1], reverse=True)
             candidates = candidates[:beam_size]
 

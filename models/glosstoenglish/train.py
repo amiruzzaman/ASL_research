@@ -20,10 +20,9 @@ from models.utils import generate_square_subsequent_mask
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 warnings.filterwarnings("ignore")
 
-
 def inference(args):
     _, _, gloss_vocab, gloss_id, text_vocab, text_id = get_data(args.batch)
-    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders).to(DEVICE)
+    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
 
     # If the save data argument is not null, then we load
     if args.model_path:
@@ -41,18 +40,18 @@ def inference(args):
             break
         
         # Turns the string input into a tensor containing tokens 
-        tokens = torch.tensor([gloss_vocab[word if word in gloss_vocab else "<unk>"] for word in sequence.split()])
-        tokens = torch.cat([torch.tensor([gloss_vocab["<sos>"]]), tokens, torch.tensor([gloss_vocab["<eos>"]])])
-        
+        tokens = torch.tensor([gloss_vocab[word if word in gloss_vocab else "<unk>"] for word in sequence.split()]).to(DEVICE)
+        tokens = torch.cat([torch.tensor([gloss_vocab["<sos>"]]).to(DEVICE), tokens, torch.tensor([gloss_vocab["<eos>"]]).to(DEVICE)]).to(DEVICE)
+
         num_tokens = tokens.shape[0]
-        mask = torch.zeros(num_tokens, num_tokens).type(torch.bool)
+        mask = torch.zeros(num_tokens, num_tokens).type(torch.bool).to(DEVICE)
         
         # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string 
         translated_tokens = None
         if args.greedy:
-            translated_tokens = model.greedy_decode(tokens, mask, gloss_vocab, text_vocab, device=DEVICE, max_len=num_tokens+5).flatten()
+            translated_tokens = model.greedy_decode(tokens, mask, gloss_vocab, text_vocab, device=DEVICE).flatten()
         else:
-            translated_tokens = model.beam_search(tokens, mask, gloss_vocab, text_vocab, device=DEVICE, max_len=num_tokens+5, beam_size=args.beam_size).flatten()
+            translated_tokens = model.beam_search(tokens, mask, gloss_vocab, text_vocab, device=DEVICE, beam_size=args.beam_size, max_len=num_tokens + 5, temperature=0.5).flatten()
         
         translated = " ".join([text_id[token] for token in translated_tokens.tolist()]).replace("<sos>", "").replace("<eos>", "")
         print(f"Translated Sequence: {translated[1:]}\n")
@@ -100,7 +99,6 @@ def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
         optimizer.zero_grad()
 
     losses /= len(data)
-    print(f"Training Average loss: {losses:>8f}")
     return losses
 
 def validate(model, data, criterion, src_vocab, trg_vocab):
@@ -144,7 +142,6 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
 
     losses /= len(data)
     correct /= correct + wrong
-    print(f"Valid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {losses:>8f}")
 
     return losses, correct
     
@@ -156,17 +153,17 @@ def train(args):
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
     curr_epoch = 1
-    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders).to(DEVICE)
+    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
     criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"]).to(DEVICE)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=1e-9)
-    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.5, total_iters=30)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=args.adams_ep)
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, factor=args.factor, patience=args.patience)
     best_loss = torch.inf
 
     # If the save data argument is not null, then we load the data to continue training
     if args.model_path:
         print("Loading checkpoint...")
         checkpoint = torch.load(args.model_path, weights_only=False)
-        
+
         curr_epoch = checkpoint['epoch'] + 1
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -174,8 +171,10 @@ def train(args):
         criterion = checkpoint['criterion']
         best_loss = checkpoint['best_loss']
 
-
+    # Calculate starting performance of the model
+    valid_loss, correct = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
     print(f"Starting Performance: \nValid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
+
     for epoch in range(curr_epoch, EPOCHS + 1):
         # Train through the entire training dataset and keep track of total time
         start_time = time.time()
@@ -208,12 +207,13 @@ def train(args):
                     'best_loss': best_loss
                     }, args.save_path + f"/epoch_{epoch}.pt")
 
-        scheduler.step()
+        scheduler.step(valid_loss)
         total_time = time.time() - start_time
 
-        print(f"\nTraining Average loss: {train_loss:>8f}")
-        print(f"Valid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}")
-        print(f"Epoch Time: {total_time:.1f} seconds\n")
+        print(f"\nEpoch Time: {total_time:.1f} seconds")
+        print(f"Training Average loss: {train_loss:>8f}")
+        print(f"Valid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
+        
 
     
 if __name__ == "__main__":
@@ -227,7 +227,11 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--model_path', type=str)
     parser.add_argument('-b', '--batch', type=int, default=32)
-        
+    parser.add_argument('--adams_ep', type=float, default=5e-9)
+    parser.add_argument('--factor', type=float, default=0.9)
+    parser.add_argument('--patience', type=int, default=10)
+    parser.add_argument('--weight_decay', type=float, default=5e-4)
+    
     # Translation Model Arguments
     parser.add_argument('--dmodel', type=int, default=512)
     parser.add_argument('--heads', type=int, default=8)
