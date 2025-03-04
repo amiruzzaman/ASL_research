@@ -18,19 +18,60 @@ mp_holistic = mp.solutions.holistic
 
 
 def extract_results(landmarks):
-    return [(res.x, res.y, res.z) for res in landmarks.landmark] if landmarks else None
+    return (
+        [{"x": res.x, "y": res.y, "z": res.z} for res in landmarks.landmark]
+        if landmarks
+        else None
+    )
 
 
-def process_frames(cap):
+def make_relative_to(landmarks, reference, reference_point_idx, origin_idx):
+    if reference and landmarks:
+        origin_point = landmarks[origin_idx]
+        reference_point = reference[reference_point_idx]
+
+        def map_fn(global_point):
+            return {
+                "x": reference_point["x"] + (global_point["x"] - origin_point["x"]),
+                "y": reference_point["y"] + (global_point["y"] - origin_point["y"]),
+                "z": reference_point["z"] + (global_point["z"] - origin_point["z"]),
+            }
+
+        return list(map(map_fn, landmarks))
+    else:
+        return landmarks
+
+
+def process_frames(cap, fps):
+    yield msgpack.packb({"fps": round(fps)})
     with mp_holistic.Holistic(refine_face_landmarks=True) as holistic:
         for data in cap:
             data.flags.writeable = False
             holistic_results = holistic.process(data)
-            rh = extract_results(holistic_results.right_hand_landmarks)
-            lh = extract_results(holistic_results.left_hand_landmarks)
-            face = extract_results(holistic_results.face_landmarks)
-            pose = extract_results(holistic_results.pose_world_landmarks)
-            yield msgpack.packb((rh, lh, face, pose))
+            pose = extract_results(holistic_results.pose_landmarks)
+            face = make_relative_to(
+                extract_results(holistic_results.face_landmarks), pose, 0, 0
+            )
+            rh = make_relative_to(
+                extract_results(holistic_results.right_hand_landmarks), pose, 16, 0
+            )
+            lh = make_relative_to(
+                extract_results(holistic_results.left_hand_landmarks), pose, 15, 0
+            )
+            yield msgpack.packb({"face": face, "pose": pose, "hands": (rh, lh)})
+
+
+@app.route("/api/mark", methods=["POST"])
+def rt_mark():
+    if request.content_type == "video/webm":
+        stream = request.data
+        cap = iio.imiter(stream, plugin="pyav", extension=".webm")
+        meta = iio.v3.immeta(stream, plugin="pyav", extension=".webm")
+        fps = meta["fps"]
+        frames = process_frames(cap, fps)
+        return Response(frames, mimetype="application/x-msgpack")
+    else:
+        return Response("Expected `video/webm` video!"), 415
 
 
 @app.route("/api/word/<string:word>", methods=["GET"])
@@ -64,17 +105,6 @@ def rt_upload_word(word: str):
             return Response("Invalid msgpack sent"), 400
     else:
         return Response("Data is not msgpack"), 415
-
-
-@app.route("/api/mark", methods=["POST"])
-def rt_mark():
-    if request.content_type == "video/webm":
-        stream = request.data
-        cap = iio.imiter(stream, plugin="pyav", extension=".webm")
-        frames = process_frames(cap)
-        return Response(frames, mimetype="application/x-msgpack")
-    else:
-        return Response("Expected `video/webm` video!"), 415
 
 
 cors_allow = environ.get("CORS_ORIGIN_ALLOW")

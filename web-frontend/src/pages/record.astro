@@ -7,7 +7,7 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
   <div class="io-pane">
     <SpinnerOverlay class="spin-overlay" id="spinner"> Processing </SpinnerOverlay>
     <video id="video-output"></video>
-    <div style="display: none;" id="preview-parent"></div>
+    <div class="container" style="display: none;" id="preview-parent"></div>
   </div>
   <div class="interface">
     <div id="complete-section" style="display: none;">
@@ -57,6 +57,7 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
     height: 40vh;
     display: flex;
     align-items: center;
+    justify-content: center;
     padding: var(--2);
     /* Hard-coded dark background since in light theme it's hard to see the animation */
     background-color: #14191f;
@@ -83,8 +84,8 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
   }
 
   #preview-parent {
-    width: 100%;
     height: 100%;
+    aspect-ratio: 1 / 1;
   }
 
   video {
@@ -95,10 +96,10 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
 </style>
 
 <script>
-  import { decodeMultiStream, encode } from "@msgpack/msgpack";
+  import { encode } from "@msgpack/msgpack";
   import {
     type WordData,
-    type Frame,
+    receiveWordStreamed,
     prepareCanvas,
     renderAsl,
     type TranslationRequest,
@@ -116,17 +117,7 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
       body: new Blob(rawFrames),
       headers: { "Content-Type": VIDEO_MIME },
     });
-    if (resp.ok && resp.body !== null) {
-      const frames = [];
-      for await (const frame of decodeMultiStream(resp.body)) {
-        frames.push(frame as Frame);
-      }
-      return frames;
-    } else {
-      // TODO: Error Handle
-      console.error(resp);
-      return null;
-    }
+    return receiveWordStreamed(resp);
   };
 
   const ready = () => {
@@ -236,7 +227,9 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
         if (recordStream !== null) {
           streamOpened(recordStream);
         } else {
-          navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(streamOpened);
+          navigator.mediaDevices
+            .getUserMedia({ audio: false, video: { frameRate: { ideal: 30, max: 60 } } })
+            .then(streamOpened);
         }
       }
     };
