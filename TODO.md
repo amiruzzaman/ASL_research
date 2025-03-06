@@ -12,7 +12,7 @@
 - [x] Linting?
 - [x] Head meta
 - [x] Chrome CORS??
-- [ ] Performance improvements
+- [x] Performance improvements
 - [x] Home Page
 - [x] Directions for Record
 - [x] Allow saving new words on the backend
