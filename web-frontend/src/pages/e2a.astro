@@ -1,6 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import SpinnerOverlay from "../components/SpinnerOverlay.astro";
+import ASLCanvas from "../components/ASLCanvas.astro";
+import Pane from "../components/Pane.astro";
 ---
 
 <Layout class="main" title="English to ASL">
@@ -13,10 +14,9 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
         style="display: none;"
         class="word-chip"></span>
     </div>
-    <div class="wrapper">
-      <SpinnerOverlay id="spinner">Fetching Words</SpinnerOverlay>
-      <div id="canvas-parent" class="canvas-parent"></div>
-    </div>
+    <Pane id="pane" class="wrapper">
+      <ASLCanvas id="canvas" />
+    </Pane>
     <div class="input-wrapper">
       <input
         id="user-input"
@@ -76,42 +76,6 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
     gap: var(--2);
   }
 
-  @keyframes pulse {
-    0% {
-      background-color: var(--secondary-100);
-    }
-    50% {
-      background-color: var(--secondary-50);
-    }
-    100% {
-      background-color: var(--secondary-100);
-    }
-  }
-
-  .wrapper {
-    box-sizing: border-box;
-    position: relative;
-  }
-
-  #spinner {
-    font-size: var(--3);
-    color: #f6f7f8;
-  }
-
-  .canvas-parent {
-    width: 100%;
-    height: 100%;
-  }
-
-  .wrapper:not(:has(canvas)) {
-    animation: pulse 2.5s linear infinite;
-  }
-
-  .wrapper:has(canvas) {
-    /* Hard-coded dark background since in light theme it's hard to see the animation */
-    background-color: #14191f;
-  }
-
   .input-wrapper {
     display: flex;
     flex-direction: row;
@@ -119,16 +83,15 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
   }
 
   .wrapper {
-    padding: var(--2);
     width: 100%;
     height: 40vh;
-    border-radius: var(--2);
   }
 </style>
 
 <script>
+  import { usePane } from "../components/Pane.astro";
   import {
-    parseAndCreateRequest,
+    createRequest,
     renderAsl,
     prepareCanvas,
     type TranslationRequest,
@@ -163,20 +126,22 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
     const userInputBox = document.getElementById("user-input")! as HTMLInputElement;
     const wordUiTemplate = document.getElementById("word-template")!;
     const wordList = document.getElementById("word-list")!;
-    const canvasParent = document.getElementById("canvas-parent")!;
-    const spinnerElem = document.getElementById("spinner")!;
+    const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
+    const pane = usePane(document.getElementById("pane")! as HTMLDivElement);
 
-    const ctx = prepareCanvas(canvasParent);
+    const ctx = prepareCanvas(canvas);
     submitButton.onclick = async () => {
       const input = userInputBox.value.trim();
       if (input.length === 0) return;
 
       submitButton.style.display = "none";
-      spinnerElem.dataset.loading = "true";
       userInputBox.style.display = "none";
+      pane.setLoading(true);
 
-      const req = await parseAndCreateRequest(input);
-      submitButton.textContent = "Preparing";
+      const req = await createRequest(input, (progress) => {
+        pane.setLoadingText(`Fetching Words (${progress.currentWord}/${progress.totalWords})`);
+      });
+      pane.setLoadingText("Preparing");
       buildWordUi(wordUiTemplate, wordList, req);
       let lastWord = 0;
       renderAsl(ctx, req, (i) => {
@@ -184,10 +149,10 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
         setWordActive(i, true);
         lastWord = i;
       });
+      pane.setLoading(false);
       submitButton.removeAttribute("disabled");
       submitButton.textContent = "Restart";
       submitButton.style.display = "";
-      spinnerElem.dataset.loading = "false";
       submitButton.onclick = () => {
         window.location.reload();
       };

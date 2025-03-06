@@ -6,14 +6,28 @@ import Spinner from "./Spinner.astro";
 export interface Props extends HTMLAttributes<"div"> {
   textId?: string;
   spinnerId?: string;
+  initialState?: boolean;
 }
 
-const { textId, spinnerId, class: className, ...rest } = Astro.props;
+export const useSpinnerOverlay = (elem: HTMLDivElement) => {
+  return {
+    ref: elem,
+    setLoading: (loading: boolean) => {
+      elem.dataset.loading = loading ? "true" : "false";
+    },
+    setText: (text?: string) => {
+      const child = elem.querySelector("span.loading-text")! as HTMLSpanElement;
+      child.innerText = text ?? "Processing";
+    },
+  };
+};
+
+const { textId, spinnerId, initialState, class: className, ...rest } = Astro.props;
 ---
 
-<div data-loading="false" class:list={["colrow-md", className]} {...rest}>
+<div data-loading={initialState ? "true" : "false"} class:list={["colrow-md", className]} {...rest}>
   <Spinner id={spinnerId} />
-  <span id={textId}><slot /></span>
+  <span class="loading-text" id={textId}><slot /></span>
 </div>
 
 <style>
@@ -24,6 +38,10 @@ const { textId, spinnerId, class: className, ...rest } = Astro.props;
     gap: var(--1);
     position: absolute;
     inset: 0;
+    font-size: var(--3);
+    color: #f6f7f8;
+    background-color: #11111199;
+    border-radius: var(--2);
     z-index: 10;
     padding: var(--2);
   }

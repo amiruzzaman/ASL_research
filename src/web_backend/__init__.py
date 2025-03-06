@@ -88,18 +88,32 @@ def rt_upload_word(word: str):
     if request.content_type == "application/x-msgpack":
         try:
             word_data = msgpack.unpackb(request.data)
-            print(len(word_data[0]))
             if (
-                type(word_data) is list
-                and len(word_data) != 0
-                and type(word_data[0]) is list
-                and len(word_data[0]) == 4
+                type(word_data) is dict
+                and word_data.get("fps") is not None
+                and word_data.get("frames") is not None
             ):
-                path = words_dir.joinpath(f"{word}.msgpack").resolve()
-                path.write_bytes(msgpack.packb(word_data))
-                return Response("Created"), 201
+                fps = word_data["fps"]
+                if type(fps) is not int:
+                    return Response("FPS information is not an integer"), 400
+                elif fps < 0:
+                    return Response("FPS must be a positive integer"), 400
+                frame_data = word_data["frames"]
+                if (
+                    type(frame_data) is list
+                    and len(frame_data) != 0
+                    and type(frame_data[0]) is dict
+                ):
+                    path = words_dir.joinpath(f"{word}.msgpack").resolve()
+                    path.write_bytes(msgpack.packb(word_data))
+                    print(f'New word "{word}" saved to {path}')
+                    return Response("Created"), 201
+                else:
+                    return Response("Frame data is not a list of dictionaries"), 400
             else:
-                return Response("Word data is not of the right shape"), 400
+                return Response(
+                    "Word data is not a dict or is missing 'fps' and 'frames'"
+                ), 400
         except Exception as e:
             print(f"Invalid data received\n{e}")
             return Response("Invalid msgpack sent"), 400

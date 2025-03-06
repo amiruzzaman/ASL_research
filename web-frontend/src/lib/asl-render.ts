@@ -65,13 +65,26 @@ export type TranslationRequest = {
   dataMap: Record<string, WordData>;
 };
 
-const createRequest = async (phrase: string): Promise<TranslationRequest> => {
+export type WordProgress = {
+  currentWord: number;
+  totalWords: number;
+};
+
+export const createRequest = async (
+  phrase: string,
+  progressCallback?: (payload: WordProgress) => void,
+): Promise<TranslationRequest> => {
   const words = separatePhrase(phrase);
 
   const dataMap: Record<string, WordData> = {};
   const failedWords: string[] = [];
 
+  const totalWords = words.length;
+  let currentWord = 1;
+
   for (const word of words) {
+    progressCallback?.({ currentWord, totalWords });
+    currentWord++;
     if (!failedWords.includes(word) && !(word in dataMap)) {
       const data = await fetchWord(word);
 
@@ -220,13 +233,11 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
   requestAnimationFrame(mainLoop);
 };
 
-export const prepareCanvas = (parent: HTMLElement): RenderContext => {
+export const prepareCanvas = (canvas: HTMLCanvasElement): RenderContext => {
+  const parent = canvas.parentElement!;
   const width = parent.offsetWidth;
   const height = parent.offsetHeight;
 
-  const canvas = document.createElement("canvas");
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
   canvas.setAttribute("width", `${Math.floor(width)}px`);
   canvas.setAttribute("height", `${Math.floor(height)}px`);
 
@@ -251,9 +262,6 @@ export const prepareCanvas = (parent: HTMLElement): RenderContext => {
 
   return ctx;
 };
-
-export const parseAndCreateRequest = (input: string): Promise<TranslationRequest> =>
-  createRequest(input);
 
 export const renderAsl = (
   ctx: RenderContext,

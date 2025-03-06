@@ -1,14 +1,14 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import SpinnerOverlay from "../components/SpinnerOverlay.astro";
+import ASLCanvas from "../components/ASLCanvas.astro";
+import Pane from "../components/Pane.astro";
 ---
 
 <Layout class="app" title="Record ASL Word/Phrase">
-  <div class="io-pane">
-    <SpinnerOverlay class="spin-overlay" id="spinner"> Processing </SpinnerOverlay>
-    <video id="video-output"></video>
-    <div class="container" style="display: none;" id="preview-parent"></div>
-  </div>
+  <Pane id="pane" startLoading>
+    <video style="display: none;" id="video-output"></video>
+    <ASLCanvas style="display: none;" id="canvas" />
+  </Pane>
   <div class="interface">
     <div id="complete-section" style="display: none;">
       <label>Word Name: <input name="word-name" id="name-input" value="word" /></label>
@@ -28,15 +28,6 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
 </Layout>
 
 <style>
-  span#placeholder-instructions {
-    text-align: center;
-    font-size: var(--2);
-  }
-
-  span.arrow {
-    font-size: var(--4);
-  }
-
   label {
     text-align: center;
   }
@@ -53,21 +44,8 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
     justify-content: center;
   }
 
-  .io-pane {
+  #pane {
     height: 40vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--2);
-    /* Hard-coded dark background since in light theme it's hard to see the animation */
-    background-color: #14191f;
-    border-radius: var(--2);
-    position: relative;
-  }
-
-  .spin-overlay {
-    font-size: var(--3);
-    color: #f6f7f8;
   }
 
   .word-actions {
@@ -83,14 +61,8 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
     align-items: stretch;
   }
 
-  #preview-parent {
-    height: 100%;
-    aspect-ratio: 1 / 1;
-  }
-
   video {
     height: 100%;
-    margin: 0 auto;
     border-radius: var(--1);
   }
 </style>
@@ -104,6 +76,7 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
     renderAsl,
     type TranslationRequest,
   } from "../lib/asl-render";
+  import { usePane } from "../components/Pane.astro";
 
   const VIDEO_MIME = "video/webm";
 
@@ -124,11 +97,11 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
     const videoElem = document.getElementById("video-output")! as HTMLVideoElement;
     const recordButton = document.getElementById("record")! as HTMLButtonElement;
     const downloadLink = document.getElementById("download-link")! as HTMLAnchorElement;
-    const previewCanvas = document.getElementById("preview-parent")! as HTMLDivElement;
+    const previewCanvas = document.getElementById("canvas")! as HTMLCanvasElement;
     const completeSection = document.getElementById("complete-section")! as HTMLDivElement;
     const nameInput = document.getElementById("name-input")! as HTMLInputElement;
-    const spinnerElem = document.getElementById("spinner")! as HTMLSpanElement;
     const uploadButton = document.getElementById("create-word")! as HTMLButtonElement;
+    const paneElem = usePane(document.getElementById("pane")! as HTMLDivElement);
 
     let isRecording = false;
     let stopping = false;
@@ -138,8 +111,9 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
     const afterRecord = async (rawData: Blob[]) => {
       recordButton.disabled = true;
       recordButton.style.display = "none";
-      videoElem.style.display = "none";
-      spinnerElem.dataset.loading = "true";
+      paneElem.setLoadingText("Processing Video");
+      paneElem.setLoading(true);
+
       const wordData = await processVideo(rawData);
       if (wordData !== null) {
         previewCanvas.style.display = "block";
@@ -152,30 +126,33 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
         const msgPackData = new Blob([encode(wordData)]);
         downloadLink.href = URL.createObjectURL(msgPackData);
         downloadLink.download = "word.msgpack";
-        spinnerElem.dataset.loading = "false";
+
+        paneElem.setLoading(false);
         completeSection.style.display = "";
+        videoElem.style.display = "none";
         let wordName = "word";
         nameInput.onkeyup = () => {
           wordName = nameInput.value;
           downloadLink.download = `${wordName}.msgpack`;
         };
         uploadButton.onclick = async () => {
-          uploadButton.setAttribute("disabled", "true");
+          uploadButton.disabled = true;
           previewCanvas.style.display = "none";
-          spinnerElem.dataset.loading = "true";
+          paneElem.setLoadingText("Uploading Word");
+          paneElem.setLoading(true);
           const resp = await fetch(`${wordEndpoint}/${wordName}`, {
             method: "POST",
             body: msgPackData,
             headers: { "Content-Type": "application/x-msgpack" },
           });
-          spinnerElem.dataset.loading = "false";
+          paneElem.setLoading(false);
           if (resp.ok) {
             window.alert("New Word Saved");
             window.location.reload();
           } else {
             console.error(`Couldn't Create Word`, resp.status, await resp.text());
             window.alert(`Failed to create word in library: ${resp.status}`);
-            uploadButton.removeAttribute("disabled");
+            uploadButton.disabled = false;
           }
         };
       } else {
@@ -187,11 +164,12 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
       const options = { mimeType: VIDEO_MIME };
       const recordedData: Blob[] = [];
       const recorder = new MediaRecorder(stream, options);
-      spinnerElem.dataset.loading = "false";
+      videoElem.style.display = "";
       videoElem.srcObject = stream;
       videoElem.play();
 
       const onData = (e: MediaRecorderEventMap["dataavailable"]) => {
+        paneElem.setLoading(false);
         if (e.data.size > 0) {
           recordedData.push(e.data);
         }
@@ -223,7 +201,8 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
       } else {
         recordButton.dataset["recording"] = "true";
         recordButton.innerText = "Stop Recording";
-        spinnerElem.dataset.loading = "true";
+        paneElem.setLoadingText("Starting Camera");
+        paneElem.setLoading(true);
         if (recordStream !== null) {
           streamOpened(recordStream);
         } else {
@@ -233,6 +212,8 @@ import SpinnerOverlay from "../components/SpinnerOverlay.astro";
         }
       }
     };
+
+    paneElem.setLoading(false);
   };
 
   window.onload = ready;
