@@ -1,3 +1,4 @@
+import math
 import sys
 
 import torch
@@ -13,7 +14,7 @@ class GlossToEnglishModel(nn.Module):
 
         Converts the source and target token sequences (Batch Size, Sequence Size) to their embedding tensors (Batch Size, Sequence Size, d_model).          
         Feeds them through the translator model.
-
+        
         Parameters:
             src_vocab_size: The size of the source sequence's vocabulary
             trg_vocab_size: The size of the target sequence's vocabulary
@@ -33,6 +34,7 @@ class GlossToEnglishModel(nn.Module):
         super(GlossToEnglishModel, self).__init__()
 
         # Embedding layers for the source and target inputs
+        self.d_model = d_model
         self.src_embedding = nn.Embedding(src_vocab_size, d_model, device=device).to(device)
         self.trg_embedding = nn.Embedding(trg_vocab_size, d_model, device=device).to(device)
 
@@ -43,7 +45,9 @@ class GlossToEnglishModel(nn.Module):
             num_decoder_layers=num_decoders, dropout=dropout, activation=activation, batch_first=True).to(device)
         
         self.linear = nn.Linear(d_model, trg_vocab_size).to(device)
-        self.softmax = nn.Softmax(dim=-1)
+        self.softmax = nn.Softmax(dim=-1).to(device)
+        self._init_weights()
+
         
     def forward(self, src, trg, src_mask, trg_mask, src_padding_mask, trg_padding_mask, memory_padding_mask):
         """
@@ -67,16 +71,25 @@ class GlossToEnglishModel(nn.Module):
 
         # Turn the list of tokens (Batch, Sequence Size) into its embedding vectors
         # Then, apply positional encoding to those vectors (Batch, Sequence Size, Embedding Vector Size)
-        src_pos = self.pos_encoding(self.src_embedding(src))
-        trg_pos = self.pos_encoding(self.trg_embedding(trg))
+        src = self.pos_encoding(self.src_embedding(src)) 
+        trg = self.pos_encoding(self.trg_embedding(trg))
 
         # Feed the source and target embedding matrices into the transformer model
-        out = self.transformer(src_pos, trg_pos, src_mask, trg_mask, None, src_padding_mask, trg_padding_mask, memory_padding_mask)
+        out = self.transformer(src, trg, src_mask, trg_mask, 
+                               src_key_padding_mask=src_padding_mask, 
+                               tgt_key_padding_mask=trg_padding_mask, 
+                               memory_key_padding_mask=memory_padding_mask)
+        
+        out = self.linear(out)
 
         # Feeds the output of the decoders into a linear function that output a vector of size trg_vocal_size 
         # and then applys the softmax activation function on it to receive a probability distribution for each sequence in the batch
-        return self.linear(out)
+        return self.softmax(out)
 
+    def _init_weights(self):
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
 
     def encode(self, src, src_mask):
         """
@@ -90,8 +103,8 @@ class GlossToEnglishModel(nn.Module):
         Returns:
             A tensor (Batch, Sequence Size, Number of expected features) 
         """
-
-        src_pos = self.pos_encoding(self.src_embedding(src))
+        
+        src_pos = self.pos_encoding(self.src_embedding(src) * math.sqrt(self.d_model))
         out = self.transformer.encoder(src_pos, src_mask)
 
         return out
@@ -111,10 +124,12 @@ class GlossToEnglishModel(nn.Module):
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
         out = self.transformer.decoder(trg_pos, memory, trg_mask)
 
-        return self.linear(out[:, -1])
+        return self.softmax(self.linear(out[:, -1]))
     
 
     def greedy_decode(self, src, src_mask, src_vocab, trg_vocab, device, max_len=100):
+        self.eval()
+
         # Convert the sequences from (Sequence) to (Batch, Sequence)
         src = src.unsqueeze(0).to(device)
 
@@ -126,14 +141,14 @@ class GlossToEnglishModel(nn.Module):
 
         for _ in range(max_len):
             mask = generate_square_subsequent_mask(sequence.shape[-1], device).type(torch.bool).to(device)
-            
+                
             # Feeds the target and retrieves a vector (Batch, Sequence Size, Target Vocab Size)
             out = self.decode(sequence, memory, mask)
             _, next_word = torch.max(out, dim=1)
-            next_word = next_word.item()
+            next_word = torch.tensor([next_word.item()])
 
             # Concatenate the predicted token to the output sequence
-            sequence = torch.cat([sequence, torch.ones(1, 1).fill_(next_word).type(torch.long).to(device)], dim=1)
+            sequence = torch.cat((sequence, next_word), dim=1)
 
             if next_word == trg_vocab["<eos>"]:
                 break
@@ -154,7 +169,7 @@ class GlossToEnglishModel(nn.Module):
         
         for _ in range(max_len):
             new_candidates = []
-
+            
             for candidate, score in candidates:
                 # We do not want to expand current candidate, if the candidates's sequence reaches <eos>
                 if candidate[0, -1].item() == trg_vocab["<eos>"]:
@@ -163,16 +178,16 @@ class GlossToEnglishModel(nn.Module):
                 mask = generate_square_subsequent_mask(candidate.shape[-1], device).type(torch.bool).to(device)
 
                 logits = self.decode(candidate, memory, mask)
-                scaled_logits = logits / temperature
-                out = self.softmax(scaled_logits)
-                top_k_prob, top_k_idx = torch.topk(out, beam_size, dim=1)
+                # scaled_logits = logits / temperature
+                # out = self.softmax(scaled_logits)
+                top_k_prob, top_k_idx = torch.topk(logits, beam_size, dim=1)
                 
                 # For each probability, get the token and its accompanying probability
                 for i in range(beam_size):
                     token = top_k_idx[:, i]
                     token_prob = torch.log(top_k_prob[:, i])
 
-                    new_candidate = torch.cat([candidate, torch.tensor([[token]]).to(device)], dim=-1).to(device)
+                    new_candidate = torch.cat((candidate, torch.tensor([[token]]).to(device)), dim=-1).to(device)
                     new_score = score + token_prob
 
                     new_candidates.append((new_candidate, new_score))

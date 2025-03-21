@@ -138,13 +138,16 @@ def get_data(batch_size, random_state=29, test_size=0.1):
         A dataloader that contains the ASL glosses and the English sentences
     """
     enable_progress_bars()
-    filters = ["DESC-", "X-"]
+    filters = ["desc-", "x-"]
 
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
     aslg_dataset = load_dataset("achrafothman/aslg_pc12", split='train')
     glosses, texts = zip(*[(pair["gloss"].strip(), pair["text"].strip()) for pair in aslg_dataset])
-    
+
+    glosses = list(map(lambda x: x.lower(), glosses))
+    texts = list(map(lambda x: x.lower(), texts))
+
     print("Building the vocab...")
     gloss_vocab, gloss_id = build_vocab(glosses, filters=filters)
     text_vocab, text_id = build_vocab(texts)

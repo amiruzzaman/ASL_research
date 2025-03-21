@@ -20,4 +20,5 @@ dependencies = [
     "tqdm>=4.67.1",
     "opencv-python>=4.11.0.86",
     "msvc_runtime>=14.42.34433",
+    "fiftyone"
 ]

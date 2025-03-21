@@ -1,4 +1,6 @@
 import sys
+import fiftyone as fo
+import fiftyone.utils.huggingface as fouh
 
 import cv2 as cv
 import mediapipe as mp
@@ -16,4 +18,8 @@ def frame_capture(path):
 
 
 def get_data(batch_size = 64):
-    pass
+    dataset = fouh.load_from_hub("Voxel51/WLASL")
+    session = fo.launch_app(dataset)
+
+if __name__ == "__main__":
+    get_data()

@@ -14,16 +14,16 @@ class PositionalEncoding(nn.Module):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=drop_p)
 
-        self.pe = torch.zeros(max_len, d_model).to(device) 
-        self.pe.requires_grad = False
-
+        pe = torch.zeros(max_len, d_model).to(device) 
+        
         pos = torch.arange(0, max_len).unsqueeze(dim=1)
         dim = torch.arange(0, d_model, 2)
         
         # For even position indices, we utilize the sine function
         # For odd indices, we utilize the cosine function
-        self.pe[:, 0::2] = torch.sin(pos / (10000 ** (dim / d_model)))
-        self.pe[:, 1::2] = torch.cos(pos / (10000 ** (dim / d_model)))
+        pe[:, 0::2] = torch.sin(pos / (10000 ** (dim / d_model)))
+        pe[:, 1::2] = torch.cos(pos / (10000 ** (dim / d_model)))
+        self.register_buffer("pe", pe)
 
     def forward(self, x): 
         """

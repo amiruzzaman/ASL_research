@@ -115,7 +115,7 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
 
         # Create the masks for the source and target
         src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg_input, trg_vocab["<pad>"], DEVICE)
-
+    
         # Feed the inputs through the translation model
         # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model 
         # instead of the model's output in the prior timestep
@@ -156,7 +156,6 @@ def train(args):
     model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
     criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"]).to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=args.adams_ep)
-    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, factor=args.factor, patience=args.patience)
     best_loss = torch.inf
 
     # If the save data argument is not null, then we load the data to continue training
@@ -167,7 +166,6 @@ def train(args):
         curr_epoch = checkpoint['epoch'] + 1
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         criterion = checkpoint['criterion']
         best_loss = checkpoint['best_loss']
 
@@ -192,7 +190,6 @@ def train(args):
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'scheduler_state_dict': scheduler.state_dict(),
                     'criterion': criterion,
                     'best_loss': best_loss
                     }, args.save_path + "/best.pt")
@@ -202,12 +199,10 @@ def train(args):
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'scheduler_state_dict': scheduler.state_dict(),
                     'criterion': criterion,
                     'best_loss': best_loss
                     }, args.save_path + f"/epoch_{epoch}.pt")
 
-        scheduler.step(valid_loss)
         total_time = time.time() - start_time
 
         print(f"\nEpoch Time: {total_time:.1f} seconds")
