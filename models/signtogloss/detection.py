@@ -60,7 +60,7 @@ if __name__ == "__main__":
         mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
 
         mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
-
+        
         cv.imshow('frame', image)
         keyCode = cv.waitKey(1)
         if cv.getWindowProperty('frame', cv.WND_PROP_VISIBLE) < 1:

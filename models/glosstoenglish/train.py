@@ -29,7 +29,7 @@ def inference(args):
         print("Loading model...")
         checkpoint = torch.load(args.model_path, weights_only=False)
         model.load_state_dict(checkpoint['model_state_dict'])
-
+    
     model.eval()
     
     while True:
@@ -210,7 +210,6 @@ def train(args):
         print(f"Valid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
         
 
-    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ASLGlossModel")
     
