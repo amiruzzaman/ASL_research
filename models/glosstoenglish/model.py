@@ -84,7 +84,7 @@ class GlossToEnglishModel(nn.Module):
 
         # Feeds the output of the decoders into a linear function that output a vector of size trg_vocal_size 
         # and then applys the softmax activation function on it to receive a probability distribution for each sequence in the batch
-        return self.softmax(out)
+        return out
 
     def _init_weights(self):
         for p in self.parameters():
@@ -104,7 +104,7 @@ class GlossToEnglishModel(nn.Module):
             A tensor (Batch, Sequence Size, Number of expected features) 
         """
         
-        src_pos = self.pos_encoding(self.src_embedding(src) * math.sqrt(self.d_model))
+        src_pos = self.pos_encoding(self.src_embedding(src))
         out = self.transformer.encoder(src_pos, src_mask)
 
         return out
@@ -124,7 +124,7 @@ class GlossToEnglishModel(nn.Module):
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
         out = self.transformer.decoder(trg_pos, memory, trg_mask)
 
-        return self.softmax(self.linear(out[:, -1]))
+        return self.linear(out[:, -1])
     
 
     def greedy_decode(self, src, src_mask, src_vocab, trg_vocab, device, max_len=100):
@@ -134,7 +134,7 @@ class GlossToEnglishModel(nn.Module):
         src = src.unsqueeze(0).to(device)
 
         # Feed the source sequence and its mask into the transformer's encoder
-        memory = self.encode(src)
+        memory = self.encode(src, src_mask)
         
         # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
         sequence = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(device)
@@ -145,14 +145,14 @@ class GlossToEnglishModel(nn.Module):
             # Feeds the target and retrieves a vector (Batch, Sequence Size, Target Vocab Size)
             out = self.decode(sequence, memory, mask)
             _, next_word = torch.max(out, dim=1)
-            next_word = torch.tensor([next_word.item()])
+            next_word = torch.tensor([[next_word.item()]]).to(device=device)
 
             # Concatenate the predicted token to the output sequence
             sequence = torch.cat((sequence, next_word), dim=1)
 
             if next_word == trg_vocab["<eos>"]:
                 break
-                
+
         return sequence
     
 

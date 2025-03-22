@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore")
 
 def inference(args):
     _, _, gloss_vocab, gloss_id, text_vocab, text_id = get_data(args.batch)
-    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
+    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, args.dropout, device=DEVICE).to(DEVICE)
 
     # If the save data argument is not null, then we load
     if args.model_path:
@@ -35,7 +35,7 @@ def inference(args):
     while True:
         print("~~ Translate ASL Gloss to English Sentence ~~")
         sequence = input("ASL Sequence: ")
-
+    
         if sequence.lower() == "<stop>":
             break
         
@@ -115,7 +115,7 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
 
         # Create the masks for the source and target
         src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg_input, trg_vocab["<pad>"], DEVICE)
-    
+
         # Feed the inputs through the translation model
         # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model 
         # instead of the model's output in the prior timestep
@@ -225,13 +225,14 @@ if __name__ == "__main__":
     parser.add_argument('--adams_ep', type=float, default=5e-9)
     parser.add_argument('--factor', type=float, default=0.9)
     parser.add_argument('--patience', type=int, default=10)
-    parser.add_argument('--weight_decay', type=float, default=5e-4)
+    parser.add_argument('--weight_decay', type=float, default=1e-9)
     
     # Translation Model Arguments
     parser.add_argument('--dmodel', type=int, default=512)
     parser.add_argument('--heads', type=int, default=8)
     parser.add_argument('--encoders', type=int, default=2)
     parser.add_argument('--decoders', type=int, default=2)
+    parser.add_argument('--dropout', type=float, default=0.1)
 
     parser.add_argument('--greedy', action='store_true')
     parser.add_argument('--beam_size', type=int, default=25)
