@@ -152,7 +152,7 @@ class GlossToEnglishModel(nn.Module):
 
             if next_word == trg_vocab["<eos>"]:
                 break
-
+                    
         return sequence
     
 
