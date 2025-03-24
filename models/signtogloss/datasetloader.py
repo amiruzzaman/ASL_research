@@ -2,7 +2,7 @@ import json
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 
 class SignToVideoDataset(Dataset):
     def __init__(self, glosses, features):
@@ -24,10 +24,10 @@ def collate_fn(batch):
     return glosses, padded, seq_len
 
 def load_data(batch_size, random_state=29, test_size=0.1):
-    with open('wsasl.json', 'r') as file:
-        data = json.load(file)
+    with open('wlasl.json', 'r') as file:
+        wlasl = json.load(file)
     
-    data = [(sample["label"], sample["features"]) for sample in data]
+    data = [(sample["label"], sample["features"]) for sample in wlasl["samples"]]
     glosses, features = zip(*data)
 
     dataset = SignToVideoDataset(glosses, features)
@@ -36,15 +36,13 @@ def load_data(batch_size, random_state=29, test_size=0.1):
     train_test_split(glosses, features, random_state=29, test_size=test_size, shuffle=True)
 
     train = SignToVideoDataset(gloss_train, features_train)
+    test = SignToVideoDataset(gloss_test, features_test)
+
     train_loader = DataLoader(train, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
+    test_loader = DataLoader(test, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
 
-    return train_loader
+    return wlasl["num_classes"], wlasl["classes"], train_loader, test_loader
 
-train_loader = load_data(5)
-
-for gloss, feature, seq_len in train_loader:
-    print(seq_len)
-    print(feature.shape)
-
-    packed = pack_padded_sequence(feature, seq_len, batch_first=True, enforce_sorted=False)
-    print(packed)
+num_classes, classes, train, test = load_data(5)
+print(num_classes)
+print(classes)

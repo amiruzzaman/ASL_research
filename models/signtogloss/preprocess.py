@@ -54,11 +54,17 @@ def extract_data_from_video(path):
 with open("data/WLASL/start_kit/WLASL_v0.3.json", 'r') as file:
     dataset = json.load(file)
 
-processed = []
+samples = []
+classes = []
+num_classes = 0
+
 for label in dataset[:5]:
     gloss = label["gloss"]
     instances = label["instances"]
     print(f"\nGloss: {gloss}")
+
+    num_classes += 1
+    classes.append(gloss)
 
     for instance in tqdm(instances, "Instances: "):
         id = instance["video_id"]
@@ -69,10 +75,10 @@ for label in dataset[:5]:
         
         frames, features = extract_data_from_video(source_path)
         data = [feature.tolist() for feature in features]
-        processed.append({"label": gloss, "features": data})
+        samples.append({"label": gloss, "features": data})
 
-with open('wsasl.json', 'w') as f:
-    json.dump(processed, f, indent=4)
+with open('wlasl.json', 'w') as f:
+    json.dump({"num_classes": num_classes, "classes": classes, "samples": samples}, f, indent=4)
 
 
             
