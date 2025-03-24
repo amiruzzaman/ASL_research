@@ -34,22 +34,15 @@ def extract_data_from_video(path):
         if not success:
             break
         
-        # Resize based on console args
-        # if args.width and args.height:
-        #     frame = frame.resize(args.width, args.height)
-        
-        # Feeds in frame into holistic model
-        
         image = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
         image.flags.writeable = False
         results = holistic_model.process(image)
         image.flags.writeable = True
         
         # Extracts and concatenate (x, y, z) data from the left and right hand landmarks to create a 1d tensor
-        left_hand = extract_landmarks(results.left_hand_landmarks) if results.left_hand_landmarks else torch.zeros(21, 3)
-        right_hand = extract_landmarks(results.right_hand_landmarks) if results.right_hand_landmarks else torch.zeros(21, 3)
-        pose = extract_landmarks(results.pose_landmarks) if results.pose_landmarks else torch.zeros(33, 3)
-
+        left_hand = extract_landmarks(results.left_hand_landmarks) if results.left_hand_landmarks else torch.zeros(63)
+        right_hand = extract_landmarks(results.right_hand_landmarks) if results.right_hand_landmarks else torch.zeros(63)
+        pose = extract_landmarks(results.pose_landmarks) if results.pose_landmarks else torch.zeros(99)
         feature = torch.cat((left_hand, right_hand, pose))
         
         frames.append(image)
@@ -62,15 +55,15 @@ with open("data/WLASL/start_kit/WLASL_v0.3.json", 'r') as file:
     dataset = json.load(file)
 
 processed = []
-for label in dataset[:1]:
+for label in dataset[:5]:
     gloss = label["gloss"]
     instances = label["instances"]
-    print(f"Gloss: {gloss}")
+    print(f"\nGloss: {gloss}")
 
     for instance in tqdm(instances, "Instances: "):
         id = instance["video_id"]
         source_path = os.path.join('data', 'WLASL', 'start_kit', 'raw_videos', id + '.mp4')
-
+        
         if not os.path.exists(source_path):
             continue
         
@@ -78,7 +71,7 @@ for label in dataset[:1]:
         data = [feature.tolist() for feature in features]
         processed.append({"label": gloss, "features": data})
 
-with open('data.json', 'w') as f:
+with open('wsasl.json', 'w') as f:
     json.dump(processed, f, indent=4)
 
 

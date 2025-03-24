@@ -22,5 +22,5 @@ def generate_square_subsequent_mask(size, device):
     return mask
 
 def extract_landmarks(landmarks):
-    return torch.tensor([(landmark.x, landmark.y, landmark.z) for landmark in landmarks.landmark])
+    return torch.tensor([(landmark.x, landmark.y, landmark.z) for landmark in landmarks.landmark]).flatten()
 

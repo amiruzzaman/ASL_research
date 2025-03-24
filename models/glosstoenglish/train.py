@@ -1,7 +1,7 @@
 import sys
 
 import time
-from dataprocess import get_data
+from models.glosstoenglish.datasetloader import load_data
 from models.glosstoenglish.model import GlossToEnglishModel
 import warnings
 import argparse
@@ -21,7 +21,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 warnings.filterwarnings("ignore")
 
 def inference(args):
-    _, _, gloss_vocab, gloss_id, text_vocab, text_id = get_data(args.batch)
+    _, _, gloss_vocab, gloss_id, text_vocab, text_id = load_data(args.batch)
     model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, args.dropout, device=DEVICE).to(DEVICE)
 
     # If the save data argument is not null, then we load
@@ -148,7 +148,7 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
 
 
 def train(args):
-    train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = get_data(args.batch)
+    train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_data(args.batch)
     
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
