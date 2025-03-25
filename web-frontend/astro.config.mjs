@@ -3,6 +3,8 @@ import { defineConfig } from "astro/config";
 
 import favicons from "astro-favicons";
 
+import playformInline from "@playform/inline";
+
 export default defineConfig({
   vite: {
     css: {
@@ -22,5 +24,6 @@ export default defineConfig({
       short_name: "ASL Research",
       themes: ["#f9fafb", "#040506"],
     }),
+    playformInline(),
   ],
 });

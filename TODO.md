@@ -2,7 +2,6 @@
 
 ## Ben
 
-- [ ] Cachix/Attic instance?
 - [x] NixOS VM config
 - [x] Shoulder & Arm landmarks
 - [x] Better face landmarks
@@ -20,4 +19,3 @@
 - [x] License - AGPLv3
 - [x] Citation for Repo
 - [ ] Fill out citation document more
-- [ ] Multiple video formats for `/mark` endpoint

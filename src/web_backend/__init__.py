@@ -104,6 +104,8 @@ def rt_upload_word(word: str):
                     and len(frame_data) != 0
                     and type(frame_data[0]) is dict
                 ):
+                    if not words_dir.is_dir():
+                        words_dir.mkdir(parents=True, exist_ok=True)
                     path = words_dir.joinpath(f"{word}.msgpack").resolve()
                     path.write_bytes(msgpack.packb(word_data))
                     print(f'New word "{word}" saved to {path}')

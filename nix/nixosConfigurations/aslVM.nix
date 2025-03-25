@@ -103,7 +103,7 @@ in {
             brotli_min_length 256;
             brotli_types ${lib.concatStringsSep " " compressMimeTypes};
           '';
-          virtualHosts.aslResearch = {
+          virtualHosts.aslResearch = let cacheControl = builtins.toString 16070400; in {
             listen = [
               {
                 addr = "0.0.0.0";
@@ -117,7 +117,10 @@ in {
             default = true;
             root = "${pkgs.frontend}";
             locations."/_astro".extraConfig = ''
-              expires 604800;
+              expires ${cacheControl};
+            '';
+            locations."/favicon.svg".extraConfig = ''
+              expires ${cacheControl};
             '';
             locations."/api" = {
               recommendedProxySettings = true;
