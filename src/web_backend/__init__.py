@@ -7,6 +7,7 @@ from flask import Flask, request, Response
 
 from os import environ
 from pathlib import Path
+from unicodedata import normalize
 
 load_dotenv()
 
@@ -74,12 +75,20 @@ def rt_mark():
         return Response("Expected `video/webm` video!"), 415
 
 
+@app.route("/api/gloss", methods=["POST"])
+def rt_gloss():
+    sentence = request.data.decode()
+    # TODO: Integrate Alex's stuff here to get gloss terms from english
+    words = normalize("NFD", sentence.lower()).split()
+    return Response(msgpack.packb(words), mimetype="application/x-msgpack")
+
+
 @app.route("/api/a2e", methods=["POST"])
 def rt_a2e():
     if request.content_type == "video/webm":
         stream = request.data
         _cap = iio.imiter(stream, plugin="pyav", extension=".webm")
-        # TODO: Integrate Alex's stuff here
+        # TODO: Integrate Alex's stuff here to convert video to english
         words = msgpack.packb(["hello", "how", "are", "you"])
         return Response(words, mimetype="application/x-msgpack")
     else:

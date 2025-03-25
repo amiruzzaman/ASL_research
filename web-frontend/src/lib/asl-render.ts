@@ -55,11 +55,6 @@ export const receiveWordStreamed = async (resp: Response): Promise<WordData | nu
   }
 };
 
-const separatePhrase = (input: string): string[] => {
-  // TODO: Simple splitting for now
-  return input.toLowerCase().split(" ");
-};
-
 export type TranslationRequest = {
   words: string[];
   dataMap: Record<string, WordData>;
@@ -70,11 +65,24 @@ export type WordProgress = {
   totalWords: number;
 };
 
+const getGlossTerms = async (phrase: string): Promise<string[]> => {
+  const resp = await fetch(`${backendEndpoint}/api/gloss`, {
+    body: phrase,
+    method: "POST",
+  });
+  if (resp.ok && resp.body !== null) {
+    return decodeAsync(resp.body) as Promise<string[]>;
+  } else {
+    console.error("Failed to get gloss terms", resp.status, await resp.text());
+    return [];
+  }
+};
+
 export const createRequest = async (
   phrase: string,
   progressCallback?: (payload: WordProgress) => void,
 ): Promise<TranslationRequest> => {
-  const words = separatePhrase(phrase);
+  const words = await getGlossTerms(phrase);
 
   const dataMap: Record<string, WordData> = {};
   const failedWords: string[] = [];
