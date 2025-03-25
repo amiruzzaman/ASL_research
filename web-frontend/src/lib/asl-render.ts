@@ -211,7 +211,7 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
 
     const currFrame = animContext.currentFrame;
 
-    if (currFrame >= currWordData.frames.length) {
+    if (currFrame >= (currWordData.frames?.length ?? 0)) {
       // Next Word
       animContext.paused = true;
       setTimeout(() => {
@@ -221,7 +221,7 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
       }, waitTime);
     } else {
       // Still on this word
-      const currFrameData = currWordData.frames[animContext.currentFrame];
+      const currFrameData = currWordData?.frames?.[animContext.currentFrame];
       animContext.currentFps = currWordData.fps ?? 30; // Assume 30 FPS
 
       // 1000 ms in a sec, we want X FPS, so 1000 / X is how long we need to wait.
