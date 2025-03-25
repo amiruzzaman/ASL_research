@@ -130,6 +130,22 @@ const renderPart = (
   drawLandmarks(canvas, part, opts);
 };
 
+const colorSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+type PartColors = { pose: string; face: string; hands: [string, string] };
+type Palette = { light: PartColors; dark: PartColors };
+
+const PART_COLORS = {
+  light: { pose: "#38323b", face: "#644185", hands: ["#851409", "#094585"] },
+  dark: { pose: "#b6a6bd", face: "#8b46e0", hands: ["#de3131", "#3182de"] },
+} as Palette;
+
+let partColors = colorSchemeQuery.matches ? PART_COLORS["dark"] : PART_COLORS["light"];
+
+colorSchemeQuery.addEventListener("change", (e) => {
+  partColors = e.matches ? PART_COLORS["dark"] : PART_COLORS["light"];
+});
+
 const renderFrame = (ctx: RenderContext, canvas: CanvasRenderingContext2D, frame: Frame) => {
   if (!canvas) {
     console.error("Failed to get canvas context!");
@@ -155,20 +171,20 @@ const renderFrame = (ctx: RenderContext, canvas: CanvasRenderingContext2D, frame
   // Drawing Each Part in the Frame
   // Pose -> Face -> Hands as hands should go over face and pose (usually hands are in front of them)
   renderPart(canvas, frame.pose, poseConnections as Connections, {
-    color: "#FFFF00",
+    color: partColors["pose"],
     ...globalOpts,
     radius: (data) => (poseExclude.includes(data.index!) ? 0 : processPoint(data)),
   });
   renderPart(canvas, frame.face, faceConnections as Connections, {
-    color: "#FF0000",
+    color: partColors["face"],
     ...globalOpts,
   });
   renderPart(canvas, frame.hands[0], handConnections as Connections, {
-    color: "#00FF00",
+    color: partColors["hands"][0],
     ...globalOpts,
   });
   renderPart(canvas, frame.hands[1], handConnections as Connections, {
-    color: "#4AEFDC",
+    color: partColors["hands"][1],
     ...globalOpts,
   });
 
