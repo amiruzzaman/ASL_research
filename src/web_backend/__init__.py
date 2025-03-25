@@ -74,6 +74,18 @@ def rt_mark():
         return Response("Expected `video/webm` video!"), 415
 
 
+@app.route("/api/a2e", methods=["POST"])
+def rt_a2e():
+    if request.content_type == "video/webm":
+        stream = request.data
+        _cap = iio.imiter(stream, plugin="pyav", extension=".webm")
+        # TODO: Integrate Alex's stuff here
+        words = msgpack.packb(["hello", "how", "are", "you"])
+        return Response(words, mimetype="application/x-msgpack")
+    else:
+        return Response("Expected `video/webm` video!"), 415
+
+
 @app.route("/api/word/<string:word>", methods=["GET"])
 def rt_word(word: str):
     path = words_dir.joinpath(f"{word}.msgpack").resolve()
