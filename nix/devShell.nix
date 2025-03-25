@@ -27,7 +27,6 @@ in pkgs.mkShell {
       virtualenv
       mprocs
       opencv
-      ffmpeg-full
       ruff
       nodePackages.prettier
       alejandra
