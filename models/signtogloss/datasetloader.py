@@ -1,4 +1,4 @@
-import json
+import msgpack
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -24,9 +24,10 @@ def collate_fn(batch):
     return glosses, padded, seq_len
 
 def load_data(batch_size, random_state=29, test_size=0.1):
-    with open('wlasl.json', 'r') as file:
-        wlasl = json.load(file)
-    
+    with open('wlasl.json', 'rb') as file:
+        byte_data = file.read()
+
+    wlasl = msgpack.unpackb(byte_data)  
     data = [(sample["label"], sample["features"]) for sample in wlasl["samples"]]
     glosses, features = zip(*data)
 

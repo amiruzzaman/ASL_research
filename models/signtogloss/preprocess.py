@@ -1,17 +1,10 @@
 import json
+import msgpack
 import os
-import sys
-import warnings
-import fiftyone as fo
-import fiftyone.utils.huggingface as fouh
-
+from tqdm import tqdm 
 import cv2 as cv
 import mediapipe as mp
 import torch
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 from models.utils import extract_landmarks
 
 mp_holistic = mp.solutions.holistic
@@ -51,21 +44,21 @@ def extract_data_from_video(path):
     return frames, features
 
 # Loading data json
-with open("data/WLASL/start_kit/WLASL_v0.3.json", 'r') as file:
+with open("data/WLASL/start_kit/WLASL_v0.3.msgpack", 'r') as file:
     dataset = json.load(file)
 
 samples = []
 classes = []
 num_classes = 0
 
-for label in dataset[:5]:
+for label in dataset:
     gloss = label["gloss"]
     instances = label["instances"]
     print(f"\nGloss: {gloss}")
-
+    
     num_classes += 1
     classes.append(gloss)
-
+    
     for instance in tqdm(instances, "Instances: "):
         id = instance["video_id"]
         source_path = os.path.join('data', 'WLASL', 'start_kit', 'raw_videos', id + '.mp4')
@@ -77,11 +70,10 @@ for label in dataset[:5]:
         data = [feature.tolist() for feature in features]
         samples.append({"label": gloss, "features": data})
 
-with open('wlasl.json', 'w') as f:
-    json.dump({"num_classes": num_classes, "classes": classes, "samples": samples}, f, indent=4)
-
-
-            
+with open('wlasl.json', 'wb') as f:
+    packed = msgpack.packb({"num_classes": num_classes, "classes": classes, "samples": samples})
+    f.write(packed)
+    
         
         
         
