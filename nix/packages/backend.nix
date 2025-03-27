@@ -9,6 +9,7 @@ pkgs.writeShellApplication {
   text = ''
     #!/usr/bin/env sh
     export PYTHONPATH="${pkgs.backend-env}/lib/python3.12/site-packages"
+    export HOLISTIC_MODEL_PATH="${pkgs.holistic-task}";
     ${lib.getExe pkgs.python312Packages.gunicorn} web_backend:app "$@"
   '';
 }

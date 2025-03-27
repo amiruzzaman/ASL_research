@@ -1,27 +1,39 @@
+import sys
 import msgpack
-import mediapipe as mp
 import imageio as iio
-
 from dotenv import load_dotenv
 from flask import Flask, request, Response
+import mediapipe as mp
+from mediapipe.tasks.python import vision
 
 from os import environ
 from pathlib import Path
 from unicodedata import normalize
 
+HolisticLandmarker = vision.HolisticLandmarker
+
 load_dotenv()
+
+model_path = environ.get("HOLISTIC_MODEL_PATH")
+
+if model_path is None or model_path == "":
+    print("ERROR: Model path for Holistic is needed (set HOLISTIC_MODEL_PATH)")
+    sys.exit(1)
 
 words_dir = Path(environ.get("WORD_LIBRARY_LOCATION") or "words/").resolve()
 
 app = Flask(__name__)
 
-mp_holistic = mp.solutions.holistic
+holistic_options = vision.HolisticLandmarkerOptions(
+    base_options=mp.tasks.BaseOptions(model_asset_path=model_path),
+    running_mode=vision.RunningMode.VIDEO,
+)
 
 
 def extract_results(landmarks):
     return (
-        [{"x": res.x, "y": res.y, "z": res.z} for res in landmarks.landmark]
-        if landmarks
+        [{"x": res.x, "y": res.y, "z": res.z} for res in landmarks]
+        if landmarks and len(landmarks) != 0
         else None
     )
 
@@ -44,11 +56,14 @@ def make_relative_to(landmarks, reference, reference_point_idx, origin_idx):
 
 
 def process_frames(cap, fps):
+    frame = 0
     yield msgpack.packb({"fps": round(fps)})
-    with mp_holistic.Holistic(refine_face_landmarks=True) as holistic:
+    with HolisticLandmarker.create_from_options(holistic_options) as holistic:
         for data in cap:
             data.flags.writeable = False
-            holistic_results = holistic.process(data)
+            frame_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=data)
+            holistic_results = holistic.detect_for_video(frame_img, frame)
+            frame += 1
             pose = extract_results(holistic_results.pose_landmarks)
             face = make_relative_to(
                 extract_results(holistic_results.face_landmarks), pose, 0, 0

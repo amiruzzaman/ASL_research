@@ -29,6 +29,10 @@
         from = pkgs.python3Packages.opencv4;
         prev = prev.opencv-contrib-python;
       };
+      mediapipe = prev.mediapipe.overrideAttrs (old: {
+        buildInputs = old.buildInputs ++ [pkgs.git];
+        postInstall = "cd $out/lib/python3.12/site-packages; ls; git apply < ${./holistic-null-ptr.patch}";
+      });
       torch = hacks.nixpkgsPrebuilt {
         from = pkgs.python3Packages.torchWithoutCuda;
         prev = prev.torch.overrideAttrs (old: {

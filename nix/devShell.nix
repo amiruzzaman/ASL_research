@@ -42,6 +42,7 @@ in pkgs.mkShell {
     FLASK_PORT = "5000";
     CORS_ORIGIN_ALLOW = "http://localhost:4321";
     PUBLIC_BACKEND_HOST = "http://localhost:5000";
+    HOLISTIC_MODEL_PATH = "${pkgs.holistic-task}";
 
     shellHook = ''
       unset PYTHONPATH
