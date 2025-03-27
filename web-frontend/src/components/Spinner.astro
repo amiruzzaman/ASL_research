@@ -1,0 +1,32 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+export type Props = HTMLAttributes<"span">;
+
+const { ...rest } = Astro.props;
+---
+
+<span {...rest}></span>
+
+<style>
+  span {
+    width: 1em;
+    height: 1em;
+    border: 5px solid var(--accent-200);
+    border-bottom-color: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    animation: rotation 800ms linear infinite;
+  }
+
+  @keyframes rotation {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+</style>

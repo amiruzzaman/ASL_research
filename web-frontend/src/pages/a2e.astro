@@ -1,0 +1,168 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Pane from "../components/Pane.astro";
+---
+
+<Layout class="app" title="ASL to English">
+  <Pane id="pane" startLoading>
+    <video style="display: none;" loop id="video-output"></video>
+    <p id="output-text" style="display: none;"></p>
+  </Pane>
+  <div class="interface">
+    <button data-recording="false" id="record">Start Recording</button>
+  </div>
+  <p>
+    Record some ASL using the button above. The ASL will be interpreted to ASL gloss and then
+    transformed into English.
+  </p>
+</Layout>
+
+<style>
+  label {
+    text-align: center;
+  }
+
+  p#output-text {
+    text-align: center;
+    padding: var(--2);
+    overflow-y: auto;
+    max-height: calc(100% - var(--6));
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    gap: var(--2);
+  }
+
+  .interface {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  #pane {
+    height: 40vh;
+  }
+
+  #output-text {
+    font-size: var(--5);
+  }
+
+  video {
+    height: 100%;
+    border-radius: var(--1);
+  }
+</style>
+
+<script>
+  import { decodeAsync } from "@msgpack/msgpack";
+  import { usePane } from "../components/Pane.astro";
+
+  const VIDEO_MIME = "video/webm";
+
+  const backendHost = import.meta.env.PUBLIC_BACKEND_HOST ?? "";
+  const a2eEndpoint = `${backendHost}/api/a2e`;
+
+  const processVideo = async (rawFrames: Blob[]): Promise<string[]> => {
+    const resp = await fetch(a2eEndpoint, {
+      method: "POST",
+      body: new Blob(rawFrames),
+      headers: { "Content-Type": VIDEO_MIME },
+    });
+    if (resp.ok && resp.body !== null) {
+      return decodeAsync(resp.body) as Promise<string[]>;
+    } else {
+      console.error(`Failed to translate (${resp.status}): ${await resp.text()}`);
+      return [];
+    }
+  };
+
+  const ready = () => {
+    const videoElem = document.getElementById("video-output")! as HTMLVideoElement;
+    const recordButton = document.getElementById("record")! as HTMLButtonElement;
+    const outputText = document.getElementById("output-text")! as HTMLParagraphElement;
+    const paneElem = usePane(document.getElementById("pane")! as HTMLDivElement);
+
+    let isRecording = false;
+    let stopping = false;
+
+    const recordStream: MediaStream | null = null;
+
+    const afterRecord = async (rawData: Blob[]) => {
+      recordButton.disabled = true;
+      recordButton.style.display = "none";
+      paneElem.setLoadingText("Processing Video");
+      paneElem.setLoading(true);
+
+      const words: string[] = await processVideo(rawData);
+      outputText.textContent = words.join(" ");
+      outputText.style.display = "";
+      videoElem.style.display = "none";
+      recordButton.innerText = "Restart";
+      recordButton.onclick = () => {
+        window.location.reload();
+      };
+      recordButton.style.display = "";
+      recordButton.disabled = false;
+      paneElem.setLoading(false);
+    };
+
+    const streamOpened = (stream: MediaStream) => {
+      const options = { mimeType: VIDEO_MIME };
+      const recordedData: Blob[] = [];
+      const recorder = new MediaRecorder(stream, options);
+      videoElem.style.display = "";
+      videoElem.srcObject = stream;
+      videoElem.play();
+
+      const onData = (e: MediaRecorderEventMap["dataavailable"]) => {
+        paneElem.setLoading(false);
+        if (e.data.size > 0) {
+          recordedData.push(e.data);
+        }
+
+        if (stopping && isRecording) {
+          recorder.stop();
+          stopping = false;
+        }
+      };
+
+      const onStopped = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        isRecording = false;
+        afterRecord(recordedData);
+      };
+
+      recorder.addEventListener("dataavailable", onData);
+      recorder.addEventListener("stop", onStopped);
+      isRecording = true;
+
+      recorder.start(500);
+    };
+
+    recordButton.onclick = () => {
+      if (isRecording) {
+        recordButton.innerText = "Start Recording";
+        recordButton.dataset["recording"] = "false";
+        stopping = true;
+      } else {
+        recordButton.dataset["recording"] = "true";
+        recordButton.innerText = "Stop Recording";
+        paneElem.setLoadingText("Starting Camera");
+        paneElem.setLoading(true);
+        if (recordStream !== null) {
+          streamOpened(recordStream);
+        } else {
+          navigator.mediaDevices
+            .getUserMedia({ audio: false, video: { frameRate: { ideal: 30, max: 60 } } })
+            .then(streamOpened);
+        }
+      }
+    };
+
+    paneElem.setLoading(false);
+  };
+
+  window.onload = ready;
+</script>

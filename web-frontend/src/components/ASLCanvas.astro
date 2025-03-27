@@ -1,0 +1,17 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+export type Props = HTMLAttributes<"canvas">;
+
+const { ...props } = Astro.props;
+---
+
+<canvas {...props}></canvas>
+
+<style>
+  canvas {
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--1);
+  }
+</style>

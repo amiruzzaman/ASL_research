@@ -1,0 +1,38 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+import SpinnerOverlay, { useSpinnerOverlay } from "./SpinnerOverlay.astro";
+
+export interface Props extends HTMLAttributes<"div"> {
+  startLoading?: boolean;
+}
+
+export const usePane = (elem: HTMLDivElement) => {
+  const spinner = useSpinnerOverlay(elem.querySelector(".loading-overlay")!);
+  return {
+    setLoading: spinner.setLoading,
+    setLoadingText: spinner.setText,
+    ref: elem,
+  };
+};
+
+const { startLoading, class: className, ...rest } = Astro.props;
+---
+
+<div class:list={["pane", className]} {...rest}>
+  <SpinnerOverlay initialState={startLoading} class="loading-overlay"
+    ><slot name="loading-text">Processing</slot></SpinnerOverlay
+  >
+  <slot />
+</div>
+
+<style>
+  div.pane {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--2);
+    background-color: var(--background-raised);
+  }
+</style>
