@@ -22,6 +22,13 @@ import Pane from "../components/Pane.astro";
     text-align: center;
   }
 
+  p#output-text {
+    text-align: center;
+    padding: var(--2);
+    overflow-y: auto;
+    max-height: calc(100% - var(--6));
+  }
+
   .app {
     display: flex;
     flex-direction: column;

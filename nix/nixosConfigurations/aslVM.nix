@@ -42,7 +42,6 @@ in {
     outputs.nixosModules.aslSite
     (
       {
-        outputs',
         pkgs,
         modulesPath,
         lib,
@@ -96,6 +95,7 @@ in {
           # does manually
           additionalModules = with pkgs.nginxModules; [brotli];
           appendHttpConfig = ''
+            expires max;
             brotli on;
             brotli_static on;
             brotli_comp_level 5;
@@ -103,7 +103,7 @@ in {
             brotli_min_length 256;
             brotli_types ${lib.concatStringsSep " " compressMimeTypes};
           '';
-          virtualHosts.aslResearch = let cacheControl = builtins.toString 16070400; in {
+          virtualHosts.aslResearch = {
             listen = [
               {
                 addr = "0.0.0.0";
@@ -116,15 +116,13 @@ in {
             ];
             default = true;
             root = "${pkgs.frontend}";
-            locations."/_astro".extraConfig = ''
-              expires ${cacheControl};
-            '';
-            locations."/favicon.svg".extraConfig = ''
-              expires ${cacheControl};
-            '';
             locations."/api" = {
               recommendedProxySettings = true;
               proxyPass = "http://127.0.0.1:8000";
+              # Don't cache api routes
+              extraConfig = ''
+                expires off;
+              '';
             };
           };
         };
