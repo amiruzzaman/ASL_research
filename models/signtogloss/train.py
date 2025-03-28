@@ -1,8 +1,8 @@
+import os
 import sys
 
 import time
-from models.signtogloss.preprocess import get_data
-from models.glosstoenglish.model import GlossToEnglishModel
+from models.signtogloss.datasetloader import load_data
 import warnings
 import argparse
 
@@ -19,107 +19,59 @@ from models.utils import generate_square_subsequent_mask
 
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-warnings.filterwarnings("ignore")
 
+warnings.filterwarnings("ignore")
+CUDA_LAUNCH_BLOCKING = 1
     
-def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
+def train_epoch(model, data, optimizer, criterion, epoch, gloss_to_id):
     # Set model to training mode 
     model.train()
     losses = 0
     
     # Go through batches in the epoch
-    for src, trg in tqdm(data, desc= f"Epoch {epoch}"):
-        # Convert source and target inputs into its respective device's tensors (CPU or GPU)
-        src = src.to(DEVICE)
-        trg = trg.to(DEVICE)
+    for glosses, landmarks, seq_len in tqdm(data, desc= f"Epoch {epoch}"):
+        landmarks = landmarks.to(DEVICE)
+        ids = torch.tensor([gloss_to_id[gloss] for gloss in glosses]).to(DEVICE)
 
-        # Excluding the last element because the last element does not have any tokens to predict
-        trg_input = trg[:, :-1]
+        out = model(landmarks, seq_len, device=DEVICE)
+        out = out[range(out.shape[0]), torch.tensor(seq_len).to(DEVICE) - 1, :]
 
-        # Create the masks for the source and target
-        src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg_input, trg_vocab["<pad>"], DEVICE)
+        loss = criterion(out, ids)
+        losses += loss
 
-        # Feed the inputs through the translation model
-        # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model 
-        # instead of the model's output in the prior timestep
-        out = model(src, trg_input, src_mask, trg_mask, src_padding_mask, trg_padding_mask, src_padding_mask)
-
-        # For the criterion function to work, we have to concatenate all the batches together for it to work
-        # The shape of the tensor will turn from (Batch, Sequence Size, Target Vocab Size) 
-        # to (Batch * Sequence Size, Target Vocab Size)
-        actual = out.reshape(-1, out.shape[-1])
-        expected = trg[:, 1:].reshape(-1)
-
-        # We zero the gradients of the model, calculate the total loss of the sample
-        # Then compute the gradient vector for the model over the loss
-
-        # For the loss function, the reason why the expected is the target sequence offsetted forward by one is
-        # because it allows us to compare the next word the model predicts to the actual next word in the sequence  
-        loss = criterion(actual, expected)
-        losses += loss.item()
         loss.backward()
-        
-        # Apply the gradient vector on the trainable parameters in the model and reset the gradients
         optimizer.step()
         optimizer.zero_grad()
 
     losses /= len(data)
     return losses
 
-def validate(model, data, criterion, src_vocab, trg_vocab):
-    losses, correct, wrong = 0, 0, 0
+def validate(model, data, criterion, gloss_to_id):
+    losses, correct = 0, 0
     model.eval()
+
     # Go through batches in the epoch
-    for src, trg in tqdm(data, desc=f"Validating"):
-        # Convert source and target inputs into its respective device's tensors (CPU or GPU)
-        src = src.to(DEVICE)
-        trg = trg.to(DEVICE)
+    for glosses, landmarks, seq_len in tqdm(data, desc= "Evaluating"):
+        landmarks = landmarks.to(DEVICE)
+        ids = torch.tensor([gloss_to_id[gloss] for gloss in glosses]).to(DEVICE)
 
-        # Excluding the last element because the last element does not have any tokens to predict
-        trg_input = trg[:, :-1]
+        out = model(landmarks, seq_len, device=DEVICE)
+        out = out[range(out.shape[0]), torch.tensor(seq_len).to(DEVICE) - 1, :]
 
-        # Create the masks for the source and target
-        src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(src, trg_input, trg_vocab["<pad>"], DEVICE)
+        loss = criterion(out, ids)
+        losses += loss
+        correct = (out.argmax(dim=-1) == ids).sum().item()
 
-        # Feed the inputs through the translation model
-        # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model 
-        # instead of the model's output in the prior timestep
-        out = model(src, trg_input, src_mask, trg_mask, src_padding_mask, trg_padding_mask, src_padding_mask)
-        
-        # For the criterion function to work, we have to concatenate all the batches together for it to work
-        # The shape of the tensor will turn from (Batch, Sequence Size, Target Vocab Size) 
-        # to (Batch * Sequence Size, Target Vocab Size)
-        actual = out.reshape(-1, out.shape[-1])
-        expected = trg[:, 1:].reshape(-1)
-        
-        # For the loss function, the reason why the expected is the target sequence offsetted forward by one is
-        # because it allows us to compare the next word the model predicts to the actual next word in the sequence  
-        loss = criterion(actual, expected)
-        losses += loss.item()
-
-        # Calculate if each sequence in each batch is equal to the expected sequence
-        # correct += (out.argmax(dim=2) == trg[:, 1:]).all(dim=1).sum().item()
-        # wrong += (out.argmax(dim=2) != trg[:, 1:]).all(dim=1).sum().item()
-
-        # Calculate if each word in all batches are equal to the expected sequence
-        correct += (actual.argmax(dim=1) == expected).sum().item()
-        wrong += (actual.argmax(dim=1) != expected).sum().item()
-
-    losses /= len(data)
-    correct /= correct + wrong
-
-    return losses, correct
-    
-
+    return losses, correct / len(data.dataset)
 
 def train(args):
-    train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = get_data(args.batch)
+    num_classes, classes, gloss_to_id, train, test = load_data(args.batch)
     
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
     curr_epoch = 1
-    model = SignToGlossModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
-    criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"]).to(DEVICE)
+    model = SignToGlossModel(225, num_classes, 512, device=DEVICE)
+    criterion = nn.CrossEntropyLoss().to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=args.adams_ep)
     best_loss = torch.inf
 
@@ -135,16 +87,16 @@ def train(args):
         best_loss = checkpoint['best_loss']
 
     # Calculate starting performance of the model
-    valid_loss, correct = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
+    valid_loss, correct = validate(model, test, criterion, gloss_to_id)
     print(f"Starting Performance: \nValid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
 
     for epoch in range(curr_epoch, EPOCHS + 1):
         # Train through the entire training dataset and keep track of total time
         start_time = time.time()
-        train_loss = train_epoch(model, train_dl, optimizer, criterion, gloss_vocab, text_vocab, epoch)
+        train_loss = train_epoch(model, train, optimizer, criterion, epoch, gloss_to_id)
         
         # Goes through the validation dataset 
-        valid_loss, correct = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
+        valid_loss, correct = validate(model, test, criterion, gloss_to_id)
 
         # If the average loss from testing the validation data is smallest than the best model at that point,
         # Then we save the current model 
@@ -185,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--epochs', type=int, default=10)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--model_path', type=str)
-    parser.add_argument('-b', '--batch', type=int, default=32)
+    parser.add_argument('-b', '--batch', type=int, default=10)
     parser.add_argument('--adams_ep', type=float, default=5e-9)
 
     parser.add_argument('--save_path', type=str, default=f"./")

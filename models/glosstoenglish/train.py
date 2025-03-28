@@ -145,8 +145,6 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
 
     return losses, correct
     
-
-
 def train(args):
     train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_data(args.batch)
     
@@ -157,7 +155,7 @@ def train(args):
     criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"]).to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=args.adams_ep)
     best_loss = torch.inf
-
+    
     # If the save data argument is not null, then we load the data to continue training
     if args.model_path:
         print("Loading checkpoint...")
