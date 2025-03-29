@@ -26,7 +26,7 @@ CUDA_LAUNCH_BLOCKING = 1
 def train_epoch(model, data, optimizer, criterion, epoch, gloss_to_id):
     # Set model to training mode 
     model.train()
-    losses = 0
+    losses, correct = 0, 0
     
     # Go through batches in the epoch
     for glosses, landmarks, seq_len in tqdm(data, desc= f"Epoch {epoch}"):
@@ -38,13 +38,15 @@ def train_epoch(model, data, optimizer, criterion, epoch, gloss_to_id):
 
         loss = criterion(out, ids)
         losses += loss
+        correct += (out.argmax(dim=-1) == ids).sum().item()
 
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
 
     losses /= len(data)
-    return losses
+    correct /= len(data.dataset)
+    return losses, correct 
 
 def validate(model, data, criterion, gloss_to_id):
     losses, correct = 0, 0
@@ -57,12 +59,14 @@ def validate(model, data, criterion, gloss_to_id):
 
         out = model(landmarks, seq_len, device=DEVICE)
         out = out[range(out.shape[0]), torch.tensor(seq_len).to(DEVICE) - 1, :]
-
+    
         loss = criterion(out, ids)
         losses += loss
-        correct = (out.argmax(dim=-1) == ids).sum().item()
+        correct += (out.argmax(dim=-1) == ids).sum().item()
 
-    return losses, correct / len(data.dataset)
+    losses /= len(data)
+    correct /= len(data.dataset)
+    return losses, correct 
 
 def train(args):
     num_classes, classes, gloss_to_id, train, test = load_data(args.batch)
@@ -93,7 +97,7 @@ def train(args):
     for epoch in range(curr_epoch, EPOCHS + 1):
         # Train through the entire training dataset and keep track of total time
         start_time = time.time()
-        train_loss = train_epoch(model, train, optimizer, criterion, epoch, gloss_to_id)
+        train_loss, train_correct = train_epoch(model, train, optimizer, criterion, epoch, gloss_to_id)
         
         # Goes through the validation dataset 
         valid_loss, correct = validate(model, test, criterion, gloss_to_id)
@@ -123,7 +127,7 @@ def train(args):
         total_time = time.time() - start_time
 
         print(f"\nEpoch Time: {total_time:.1f} seconds")
-        print(f"Training Average loss: {train_loss:>8f}")
+        print(f"Training Accuracy: {(100*train_correct):>0.1f}%, Training Average loss: {train_loss:>8f}")
         print(f"Valid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
         
 
