@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, unpad_sequence
 
 class SignToGlossModel(nn.Module):
-    def __init__(self, input_size, output_size, d_model, device, layers=3):
+    def __init__(self, input_size, output_size, d_model, device, layers=2):
         super(SignToGlossModel, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
@@ -12,8 +12,8 @@ class SignToGlossModel(nn.Module):
         self.lstm = nn.LSTM(input_size, d_model, layers, batch_first=True, bidirectional=False).to(device)
         self.ff = nn.Sequential(
             nn.Linear(d_model, 64),
-            nn.ReLU(),
-            nn.Linear(64, output_size),
+            # nn.ReLU(),
+            # nn.Linear(64, output_size),
             nn.Softmax(dim=-1)
         ).to(device)
         
@@ -25,5 +25,5 @@ class SignToGlossModel(nn.Module):
         packed = pack_padded_sequence(x, seq_len, batch_first=True, enforce_sorted=False).to(device)
         out, _ = self.lstm(packed)
         out, _ = pad_packed_sequence(out, batch_first=True, total_length=x.size(1))
-
+        
         return self.ff(out)

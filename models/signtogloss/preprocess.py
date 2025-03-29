@@ -5,6 +5,7 @@ from tqdm import tqdm
 import cv2 as cv
 import mediapipe as mp
 import torch
+from models.signtogloss.model import SignToGlossModel
 from models.utils import extract_landmarks
 
 mp_holistic = mp.solutions.holistic
@@ -40,18 +41,19 @@ def extract_data_from_video(path):
         
         frames.append(image)
         features.append(feature)
+        
 
     return frames, features
 
 # Loading data json
-with open("data/WLASL/start_kit/WLASL_v0.3.msgpack", 'r') as file:
+with open("data/WLASL/start_kit/WLASL_v0.3.json", 'r') as file:
     dataset = json.load(file)
 
 samples = []
 classes = []
 num_classes = 0
 
-for label in dataset:
+for label in dataset[:50]:
     gloss = label["gloss"]
     instances = label["instances"]
     print(f"\nGloss: {gloss}")

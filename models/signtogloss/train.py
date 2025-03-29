@@ -35,7 +35,7 @@ def train_epoch(model, data, optimizer, criterion, epoch, gloss_to_id):
 
         out = model(landmarks, seq_len, device=DEVICE)
         out = out[range(out.shape[0]), torch.tensor(seq_len).to(DEVICE) - 1, :]
-
+        
         loss = criterion(out, ids)
         losses += loss
         correct += (out.argmax(dim=-1) == ids).sum().item()
@@ -70,7 +70,6 @@ def validate(model, data, criterion, gloss_to_id):
 
 def train(args):
     num_classes, classes, gloss_to_id, train, test = load_data(args.batch)
-    
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
     curr_epoch = 1
