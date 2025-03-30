@@ -168,7 +168,7 @@ def train(args):
         best_loss = checkpoint['best_loss']
 
     # Calculate starting performance of the model
-    valid_loss, correct = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
+    valid_loss, correct = validate(model, train_dl, criterion, gloss_vocab, text_vocab)
     print(f"Starting Performance: \nValid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
 
     for epoch in range(curr_epoch, EPOCHS + 1):

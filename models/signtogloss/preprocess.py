@@ -72,7 +72,7 @@ for label in dataset[:50]:
         data = [feature.tolist() for feature in features]
         samples.append({"label": gloss, "features": data})
 
-with open('wlasl.json', 'wb') as f:
+with open('wlasl.msgpack', 'wb') as f:
     packed = msgpack.packb({"num_classes": num_classes, "classes": classes, "samples": samples})
     f.write(packed)
     

@@ -24,7 +24,7 @@ def collate_fn(batch):
     return glosses, padded, seq_len
 
 def load_data(batch_size=1, random_state=29, test_size=0.1):
-    with open('wlasl.json', 'rb') as file:
+    with open('wlasl.msgpack', 'rb') as file:
         byte_data = file.read()
 
     wlasl = msgpack.unpackb(byte_data)  
