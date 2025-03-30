@@ -82,7 +82,7 @@ if __name__ == "__main__":
     
     temp = torch.tensor([[feature.tolist() for feature in features]])
     out = model(temp, [temp.size(dim=1)], device=DEVICE)
-    out = out[range(out.shape[0]), torch.tensor([temp.size(dim=1)]).to(DEVICE) - 1, :]
+    out = out[:, -1]
     print(out[0].argmax(dim=-1))
     print(id_to_gloss[out[0].argmax(dim=-1).item()])
     
