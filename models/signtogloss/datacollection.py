@@ -13,7 +13,7 @@ with open(os.path.join(DATA_PATH, "labels.txt"), 'r') as file:
     actions = file.read().strip().split(",")
 
 # Thirty videos worth of data
-no_sequences = 30
+no_sequences = 50
 
 # Videos are going to be 30 frames in length
 sequence_length = 30
@@ -33,8 +33,8 @@ mp_holistic = mp.solutions.holistic
 mp_drawing = mp.solutions.drawing_utils
 
 holistic_model = mp_holistic.Holistic(
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
+    min_detection_confidence=0.25,
+    min_tracking_confidence=0.25
 )
 
 for action in actions:
