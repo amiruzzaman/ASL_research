@@ -78,7 +78,6 @@ for action in actions:
             if cv.waitKey(10) & 0xFF == ord('q'):
                 break
         
-        print(features.shape)
         if features == None:
             continue
 

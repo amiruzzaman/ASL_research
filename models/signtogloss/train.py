@@ -29,12 +29,11 @@ def train_epoch(model, data, optimizer, criterion, epoch, gloss_to_id):
     losses, correct = 0, 0
     
     # Go through batches in the epoch
-    for glosses, landmarks, seq_len in tqdm(data, desc= f"Epoch {epoch}"):
+    for glosses, landmarks in tqdm(data, desc= f"Epoch {epoch}"):
         landmarks = landmarks.to(DEVICE)
         ids = torch.tensor([gloss_to_id[gloss] for gloss in glosses]).to(DEVICE)
 
-        out = model(landmarks, seq_len, device=DEVICE)
-        out = out[range(out.shape[0]), torch.tensor(seq_len).to(DEVICE) - 1, :]
+        out = model(landmarks, device=DEVICE)
         
         loss = criterion(out, ids)
         losses += loss
@@ -53,13 +52,12 @@ def validate(model, data, criterion, gloss_to_id):
     model.eval()
 
     # Go through batches in the epoch
-    for glosses, landmarks, seq_len in tqdm(data, desc= "Evaluating"):
+    for glosses, landmarks in tqdm(data, desc= "Evaluating"):
         landmarks = landmarks.to(DEVICE)
         ids = torch.tensor([gloss_to_id[gloss] for gloss in glosses]).to(DEVICE)
 
-        out = model(landmarks, seq_len, device=DEVICE)
-        out = out[range(out.shape[0]), torch.tensor(seq_len).to(DEVICE) - 1, :]
-    
+        out = model(landmarks, device=DEVICE)
+
         loss = criterion(out, ids)
         losses += loss
         correct += (out.argmax(dim=-1) == ids).sum().item()
@@ -69,7 +67,8 @@ def validate(model, data, criterion, gloss_to_id):
     return losses, correct 
 
 def train(args):
-    num_classes, classes, gloss_to_id, train, test = load_data(args.batch)
+    num_classes, train, test, id_to_gloss, gloss_to_id = load_data(args.batch, test_size=0.2)
+    print(num_classes)
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
     curr_epoch = 1

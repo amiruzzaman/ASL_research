@@ -8,83 +8,74 @@ from models.signtogloss.model import SignToGlossModel
 from models.utils import extract_landmarks
 
 
-if __name__ == "__main__":
-    # cap = cv.VideoCapture("data/WLASL/start_kit/raw_videos/12328.mp4")
-    cap = cv.VideoCapture("C:/Users/RedAP/Pictures/Camera Roll/WIN_20250329_15_41_30_Pro.mp4")
-    "C:/Users/RedAP/Pictures/Camera Roll/WIN_20250329_15_41_30_Pro.mp4"
-    mp_holistic = mp.solutions.holistic
-    mp_drawing = mp.solutions.drawing_utils
+import json
+import cv2 as cv
+import mediapipe as mp
+import os
+import msgpack
+import torch
+from models.utils import extract_landmarks, get_feature
 
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Thirty videos worth of data
+no_sequences = 50
 
-    num_classes, classes, gloss_to_id, _, _ = load_data()
-    id_to_gloss = {id:gloss for gloss, id in gloss_to_id.items()}
+# Videos are going to be 30 frames in length
+sequence_length = 30
 
-    model = SignToGlossModel(225, 50, 512, device=DEVICE)
-    checkpoint = torch.load("C:/Users/RedAP/Desktop/test_data/epoch_1000.pt", weights_only=False)
-    model.load_state_dict(checkpoint['model_state_dict'])
+cap = cv.VideoCapture(0)
+mp_holistic = mp.solutions.holistic
+mp_drawing = mp.solutions.drawing_utils
 
-    holistic_model = mp_holistic.Holistic(
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5
-    )
-    
-    # if not cap.isOpened():
-    #     print("Cannot open camera")
-    #     exit()
+holistic_model = mp_holistic.Holistic(
+    min_detection_confidence=0.25,
+    min_tracking_confidence=0.25
+)
 
-    features = []
-    while True:
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+num_classes, _, _, id_to_gloss, gloss_to_id = load_data()
+model = SignToGlossModel(225, num_classes, 512, device=DEVICE)
+checkpoint = torch.load("C:/Users/RedAP/Desktop/test_data/best.pt", weights_only=False)
+model.load_state_dict(checkpoint['model_state_dict'])
+
+while True:
+    stop_running = False
+    features = None
+
+    for frame_num in range(sequence_length):
+        # Read feed
         ret, frame = cap.read()
 
         if not ret:
-            print("Can't receive frame (stream end?). Exiting ...")
             break
             
-        frame = cv.resize(frame, (800, 600))
-        image = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-
-        # Making predictions using holistic model
-        # To improve performance, optionally mark the image as not writeable to
-        # pass by reference.
+        image = frame
+            
         results = holistic_model.process(image)
+        landmarks = get_feature(results)
+        features = torch.cat((features, landmarks.view(1, -1)), dim=0) if features != None else landmarks.view(1, -1)
 
-        # Converting back the RGB image to BGR
-        image = cv.cvtColor(image, cv.COLOR_RGB2BGR)
-
-        # Drawing Face landmarks
-        # mp_drawing.draw_landmarks(
-        #     image,
-        #     results.face_landmarks,
-        #     mp_holistic.FACEMESH_CONTOURS,
-        #     mp_drawing.DrawingSpec(color=(255,0,255), thickness=1, circle_radius=1),
-        #     mp_drawing.DrawingSpec(color=(0,255,255), thickness=1, circle_radius=1)
-        # )
-
-        left_hand = extract_landmarks(results.left_hand_landmarks) if results.left_hand_landmarks else torch.zeros(63)
-        right_hand = extract_landmarks(results.right_hand_landmarks) if results.right_hand_landmarks else torch.zeros(63)
-        pose = extract_landmarks(results.pose_landmarks) if results.pose_landmarks else torch.zeros(99)
-        feature = torch.cat((left_hand, right_hand, pose))
-        features.append(feature)
-        
-        # # Drawing Right hand Land Marks
-        # mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-        
-        # # Drawing Left hand Land Marks
-        # mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-
-        # mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
-        
-        # cv.imshow('frame', image)
-        # keyCode = cv.waitKey(1)
-        # if cv.getWindowProperty('frame', cv.WND_PROP_VISIBLE) < 1:
-        #     break
+        mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+        mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
+            
+        cv.imshow('OpenCV Feed', image)
+        # Break gracefully
+        if cv.waitKey(10) & 0xFF == ord('q'):
+            stop_running = True
+            break
     
-    temp = torch.tensor([[feature.tolist() for feature in features]])
-    out = model(temp, [temp.size(dim=1)], device=DEVICE)
-    out = out[:, -1]
-    print(out[0].argmax(dim=-1))
-    print(id_to_gloss[out[0].argmax(dim=-1).item()])
-    
-    cap.release()
-    # cv.destroyAllWindows()
+    if stop_running:
+        break
+
+    word = ""
+    if features != None:
+        id = torch.argmax(model(features.view(1, sequence_length, -1).to(DEVICE), device=DEVICE), dim=-1)
+        word = id_to_gloss[id.item()]
+
+    cv.putText(image, word, (120,200), cv.FONT_HERSHEY_SIMPLEX, 1, (0,255, 0), 4, cv.LINE_AA)     
+    cv.imshow('OpenCV Feed', image)
+    cv.waitKey(2000)
+
+cap.release()
+cv.destroyAllWindows()
