@@ -1,0 +1,10 @@
+dist
+result
+words
+.venv
+__pycache__
+*.pyc
+.models
+*.qcow2
+mprocs.log
+

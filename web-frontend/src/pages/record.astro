@@ -1,0 +1,220 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ASLCanvas from "../components/ASLCanvas.astro";
+import Pane from "../components/Pane.astro";
+---
+
+<Layout class="app" title="Record ASL Word/Phrase">
+  <Pane id="pane" startLoading>
+    <video style="display: none;" id="video-output"></video>
+    <ASLCanvas style="display: none;" id="canvas" />
+  </Pane>
+  <div class="interface">
+    <div id="complete-section" style="display: none;">
+      <label>Word Name: <input name="word-name" id="name-input" value="word" /></label>
+      <div class="word-actions colrow-sm">
+        <a id="download-link" href="about:blank">Download Data</a>
+        <button id="create-word">Save To Library</button>
+      </div>
+    </div>
+    <button data-recording="false" id="record">Start Recording</button>
+  </div>
+  <p>
+    Record some ASL by clicking the "Start Recording" button above. After recording you'll be shown
+    a preview of your sign and have the option to save it to a local file. Place this file in the <code
+      >words</code
+    > directory to have it available in the <a href="/e2a">English to ASL</a> page.
+  </p>
+</Layout>
+
+<style>
+  label {
+    text-align: center;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    gap: var(--2);
+  }
+
+  .interface {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  #pane {
+    height: 40vh;
+  }
+
+  .word-actions {
+    display: flex;
+    gap: var(--1);
+    align-items: center;
+  }
+
+  #complete-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--1);
+    align-items: stretch;
+  }
+
+  video {
+    height: 100%;
+    border-radius: var(--1);
+  }
+</style>
+
+<script>
+  import { encode } from "@msgpack/msgpack";
+  import {
+    type WordData,
+    receiveWordStreamed,
+    prepareCanvas,
+    renderAsl,
+    type TranslationRequest,
+  } from "../lib/asl-render";
+  import { usePane } from "../components/Pane.astro";
+
+  const VIDEO_MIME = "video/webm";
+
+  const backendHost = import.meta.env.PUBLIC_BACKEND_HOST ?? "";
+  const markEndpoint = `${backendHost}/api/mark`;
+  const wordEndpoint = `${backendHost}/api/word`;
+
+  const processVideo = async (rawFrames: Blob[]): Promise<WordData | null> => {
+    const resp = await fetch(markEndpoint, {
+      method: "POST",
+      body: new Blob(rawFrames),
+      headers: { "Content-Type": VIDEO_MIME },
+    });
+    return receiveWordStreamed(resp);
+  };
+
+  const ready = () => {
+    const videoElem = document.getElementById("video-output")! as HTMLVideoElement;
+    const recordButton = document.getElementById("record")! as HTMLButtonElement;
+    const downloadLink = document.getElementById("download-link")! as HTMLAnchorElement;
+    const previewCanvas = document.getElementById("canvas")! as HTMLCanvasElement;
+    const completeSection = document.getElementById("complete-section")! as HTMLDivElement;
+    const nameInput = document.getElementById("name-input")! as HTMLInputElement;
+    const uploadButton = document.getElementById("create-word")! as HTMLButtonElement;
+    const paneElem = usePane(document.getElementById("pane")! as HTMLDivElement);
+
+    let isRecording = false;
+    let stopping = false;
+
+    const recordStream: MediaStream | null = null;
+
+    const afterRecord = async (rawData: Blob[]) => {
+      recordButton.disabled = true;
+      recordButton.style.display = "none";
+      paneElem.setLoadingText("Processing Video");
+      paneElem.setLoading(true);
+
+      const wordData = await processVideo(rawData);
+      if (wordData !== null) {
+        previewCanvas.style.display = "block";
+        const req = {
+          words: ["rec"],
+          dataMap: { rec: wordData },
+        } as TranslationRequest;
+        const threeCtx = prepareCanvas(previewCanvas);
+        renderAsl(threeCtx, req);
+        const msgPackData = new Blob([encode(wordData)]);
+        downloadLink.href = URL.createObjectURL(msgPackData);
+        downloadLink.download = "word.msgpack";
+
+        paneElem.setLoading(false);
+        completeSection.style.display = "";
+        videoElem.style.display = "none";
+        let wordName = "word";
+        nameInput.onkeyup = () => {
+          wordName = nameInput.value;
+          downloadLink.download = `${wordName}.msgpack`;
+        };
+        uploadButton.onclick = async () => {
+          uploadButton.disabled = true;
+          previewCanvas.style.display = "none";
+          paneElem.setLoadingText("Uploading Word");
+          paneElem.setLoading(true);
+          const resp = await fetch(`${wordEndpoint}/${wordName}`, {
+            method: "POST",
+            body: msgPackData,
+            headers: { "Content-Type": "application/x-msgpack" },
+          });
+          paneElem.setLoading(false);
+          if (resp.ok) {
+            window.alert("New Word Saved");
+            window.location.reload();
+          } else {
+            console.error(`Couldn't Create Word`, resp.status, await resp.text());
+            window.alert(`Failed to create word in library: ${resp.status}`);
+            uploadButton.disabled = false;
+          }
+        };
+      } else {
+        console.error("wordData is null!");
+      }
+    };
+
+    const streamOpened = (stream: MediaStream) => {
+      const options = { mimeType: VIDEO_MIME };
+      const recordedData: Blob[] = [];
+      const recorder = new MediaRecorder(stream, options);
+      videoElem.style.display = "";
+      videoElem.srcObject = stream;
+      videoElem.play();
+
+      const onData = (e: MediaRecorderEventMap["dataavailable"]) => {
+        paneElem.setLoading(false);
+        if (e.data.size > 0) {
+          recordedData.push(e.data);
+        }
+
+        if (stopping && isRecording) {
+          recorder.stop();
+          stopping = false;
+        }
+      };
+
+      const onStopped = () => {
+        isRecording = false;
+        stream.getTracks().forEach((t) => t.stop());
+        afterRecord(recordedData);
+      };
+
+      recorder.addEventListener("dataavailable", onData);
+      recorder.addEventListener("stop", onStopped);
+      isRecording = true;
+
+      recorder.start(500);
+    };
+
+    recordButton.onclick = () => {
+      if (isRecording) {
+        recordButton.innerText = "Start Recording";
+        recordButton.dataset["recording"] = "false";
+        stopping = true;
+      } else {
+        recordButton.dataset["recording"] = "true";
+        recordButton.innerText = "Stop Recording";
+        paneElem.setLoadingText("Starting Camera");
+        paneElem.setLoading(true);
+        if (recordStream !== null) {
+          streamOpened(recordStream);
+        } else {
+          navigator.mediaDevices
+            .getUserMedia({ audio: false, video: { frameRate: { ideal: 30, max: 60 } } })
+            .then(streamOpened);
+        }
+      }
+    };
+
+    paneElem.setLoading(false);
+  };
+
+  window.onload = ready;
+</script>

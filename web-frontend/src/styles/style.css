@@ -1,0 +1,332 @@
+/* Color Definitions */
+@media (prefers-color-scheme: light) {
+  :root {
+    --text: #070809;
+    --background: #f9fafb;
+    --primary: #00498a;
+    --secondary: #9ac0e0;
+    --accent: #559edd;
+
+    --text-50: #f1f2f4;
+    --text-100: #e2e6e9;
+    --text-200: #c5ccd3;
+    --text-300: #a9b3bc;
+    --text-400: #8c99a6;
+    --text-500: #6f7f90;
+    --text-600: #596673;
+    --text-700: #434c56;
+    --text-800: #2c333a;
+    --text-900: #16191d;
+    --text-950: #0b0d0e;
+
+    --background-50: #f0f2f5;
+    --background-100: #e0e6eb;
+    --background-200: #c2ccd6;
+    --background-300: #a3b3c2;
+    --background-400: #8599ad;
+    --background-500: #667f99;
+    --background-600: #52667a;
+    --background-700: #3d4c5c;
+    --background-800: #29333d;
+    --background-900: #14191f;
+    --background-950: #0a0d0f;
+
+    --primary-50: #e5f3ff;
+    --primary-100: #cce7ff;
+    --primary-200: #99cfff;
+    --primary-300: #66b8ff;
+    --primary-400: #33a0ff;
+    --primary-500: #0088ff;
+    --primary-600: #006dcc;
+    --primary-700: #005299;
+    --primary-800: #003666;
+    --primary-900: #001b33;
+    --primary-950: #000e1a;
+
+    --secondary-50: #ebf3f9;
+    --secondary-100: #d8e7f3;
+    --secondary-200: #b1cfe7;
+    --secondary-300: #8ab7db;
+    --secondary-400: #639ecf;
+    --secondary-500: #3c86c3;
+    --secondary-600: #306b9c;
+    --secondary-700: #245175;
+    --secondary-800: #18364e;
+    --secondary-900: #0c1b27;
+    --secondary-950: #060d14;
+
+    --accent-50: #eaf3fb;
+    --accent-100: #d4e7f7;
+    --accent-200: #aaceee;
+    --accent-300: #7fb6e6;
+    --accent-400: #559edd;
+    --accent-500: #2a85d5;
+    --accent-600: #226baa;
+    --accent-700: #195080;
+    --accent-800: #113555;
+    --accent-900: #081b2b;
+    --accent-950: #040d15;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #f6f7f8;
+    --background: #040506;
+    --primary: #75bfff;
+    --secondary: #1f4665;
+    --accent: #226baa;
+
+    --text-50: #0b0d0e;
+    --text-100: #16191d;
+    --text-200: #2d3339;
+    --text-300: #434c56;
+    --text-400: #5a6672;
+    --text-500: #707f8f;
+    --text-600: #8d99a5;
+    --text-700: #a9b3bc;
+    --text-800: #c6ccd2;
+    --text-900: #e2e6e9;
+    --text-950: #f1f2f4;
+
+    --background-50: #0a0d0f;
+    --background-100: #14191f;
+    --background-200: #29333d;
+    --background-300: #3d4c5c;
+    --background-400: #52667a;
+    --background-500: #667f99;
+    --background-600: #8599ad;
+    --background-700: #a3b3c2;
+    --background-800: #c2ccd6;
+    --background-900: #e0e6eb;
+    --background-950: #f0f2f5;
+
+    --primary-50: #000e1a;
+    --primary-100: #001b33;
+    --primary-200: #003666;
+    --primary-300: #005299;
+    --primary-400: #006dcc;
+    --primary-500: #0088ff;
+    --primary-600: #33a0ff;
+    --primary-700: #66b8ff;
+    --primary-800: #99cfff;
+    --primary-900: #cce7ff;
+    --primary-950: #e5f3ff;
+
+    --secondary-50: #060d14;
+    --secondary-100: #0c1b27;
+    --secondary-200: #18364e;
+    --secondary-300: #245175;
+    --secondary-400: #306b9c;
+    --secondary-500: #3c86c3;
+    --secondary-600: #639ecf;
+    --secondary-700: #8ab7db;
+    --secondary-800: #b1cfe7;
+    --secondary-900: #d8e7f3;
+    --secondary-950: #ebf3f9;
+
+    --accent-50: #040d15;
+    --accent-100: #081b2b;
+    --accent-200: #113555;
+    --accent-300: #195080;
+    --accent-400: #226baa;
+    --accent-500: #2a85d5;
+    --accent-600: #559edd;
+    --accent-700: #7fb6e6;
+    --accent-800: #aaceee;
+    --accent-900: #d4e7f7;
+    --accent-950: #eaf3fb;
+  }
+}
+
+/* Color Aliases */
+:root {
+  --text-disabled: var(--text-300);
+  --background-raised: var(--background-50);
+  --background-raised-2: var(--background-100);
+}
+
+/* Spacing Scale, Major Third */
+:root {
+  /* 1rem = 16px */
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 100%;
+  --scale: 1.25;
+  --small: calc(1rem * pow(var(--scale), -1));
+  --half: calc(1rem * pow(var(--scale), -0.5));
+  --1: calc(1rem * pow(var(--scale), 0));
+  --2: calc(1rem * pow(var(--scale), 1));
+  --3: calc(1rem * pow(var(--scale), 2));
+  --4: calc(1rem * pow(var(--scale), 3));
+  --5: calc(1rem * pow(var(--scale), 4));
+  --6: calc(1rem * pow(var(--scale), 5));
+  --7: calc(1rem * pow(var(--scale), 6));
+  --8: calc(1rem * pow(var(--scale), 7));
+  --9: calc(1rem * pow(var(--scale), 8));
+  --10: calc(1rem * pow(var(--scale), 9));
+  --11: calc(1rem * pow(var(--scale), 10));
+  --12: calc(1rem * pow(var(--scale), 11));
+  --14: calc(1rem * pow(var(--scale), 13));
+  --component-padding: var(--small) var(--1);
+}
+
+/* Element Defaults */
+
+small {
+  font-size: var(--small);
+  color: var(--text-disabled);
+}
+
+h1 {
+  font-size: var(--5);
+}
+
+h2 {
+  font-size: var(--4);
+}
+
+h3 {
+  font-size: var(--3);
+}
+
+h4 {
+  font-size: var(--2);
+}
+
+h5 {
+  font-size: var(--1);
+}
+
+body {
+  color: var(--text);
+}
+
+a {
+  color: var(--accent-600);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+button.primary,
+.as-button {
+  --bg: var(--primary-400);
+  --hover-bg: var(--primary-500);
+  --active-bg: var(--primary-300);
+  --disabled-bg: var(--primary-600);
+
+  padding: var(--component-padding);
+  color: var(--text);
+  border-radius: var(--1);
+  border: solid 2px transparent;
+  background-color: var(--bg);
+  cursor: pointer;
+  will-change: background-color;
+  transition: background-color 100ms linear;
+}
+
+button:active {
+  background-color: var(--active-bg);
+}
+
+button:hover {
+  background-color: var(--hover-bg);
+}
+
+button:disabled {
+  background-color: var(--disabled-bg);
+  color: var(--text-disabled);
+}
+
+button:disabled:hover {
+  cursor: default;
+}
+
+input {
+  padding: var(--component-padding);
+  color: var(--text);
+  border-radius: var(--1);
+  border: solid 2px var(--accent-200);
+  background-color: var(--background-raised);
+}
+
+body {
+  font-weight: 400;
+  background-color: var(--background);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  width: 100vw;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-weight: 700;
+}
+
+/* Breakpoint Queries, Using Bootstrap's */
+
+/* Smallest: 576px */
+
+@custom-media --sm (width >=576px);
+@custom-media --md (width >=768px);
+@custom-media --lg (width >=992px);
+@custom-media --xl (width >=1200px);
+@custom-media --xxl (width >=1400px);
+
+.container {
+  --gutter: var(--2);
+  margin: 0 var(--gutter);
+}
+
+@media (--md) {
+  .container {
+    --gutter: var(--10);
+  }
+}
+
+@media (--xxl) {
+  .container {
+    --gutter: var(--14);
+  }
+}
+
+.colrow-sm {
+  flex-direction: column !important;
+}
+
+@media (--sm) {
+  .colrow-sm {
+    flex-direction: row !important;
+  }
+}
+
+.colrow-md {
+  flex-direction: column !important;
+}
+
+@media (--md) {
+  .colrow-md {
+    flex-direction: row !important;
+  }
+}
+
+.colrow-xl {
+  display: flex;
+  flex-direction: column !important;
+}
+
+@media (--xl) {
+  .colrow-xl {
+    flex-direction: row-reverse !important;
+  }
+}
