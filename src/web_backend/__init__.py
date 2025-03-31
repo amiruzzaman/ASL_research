@@ -93,7 +93,10 @@ def rt_mark():
 @app.route("/api/gloss", methods=["POST"])
 def rt_gloss():
     sentence = request.data.decode()
-    # TODO: Integrate Alex's stuff here to get gloss terms from english
+    # TODO: Integrate Alex's stuff here to get gloss terms from english, for far we just:
+    # 1. Lowercase the sentence
+    # 2. NFD normalize the string (handles making accents and similar unicode characters the same)
+    # 3. Split the string by whitespace
     words = normalize("NFD", sentence.lower()).split()
     return Response(msgpack.packb(words), mimetype="application/x-msgpack")
 
