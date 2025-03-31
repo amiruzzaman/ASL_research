@@ -77,12 +77,16 @@ def process_frames(cap, fps):
             yield msgpack.packb({"face": face, "pose": pose, "hands": (rh, lh)})
 
 
+VIDEO_TYPES = {"video/webm": ".webm", "video/mp4": ".mp4"}
+
+
 @app.route("/api/mark", methods=["POST"])
 def rt_mark():
-    if request.content_type == "video/webm":
+    ext = VIDEO_TYPES.get(request.content_type)
+    if ext is not None:
         stream = request.data
-        cap = iio.imiter(stream, plugin="pyav", extension=".webm")
-        meta = iio.v3.immeta(stream, plugin="pyav", extension=".webm")
+        cap = iio.imiter(stream, plugin="pyav", extension=ext)
+        meta = iio.v3.immeta(stream, plugin="pyav", extension=ext)
         fps = meta["fps"]
         frames = process_frames(cap, fps)
         return Response(frames, mimetype="application/x-msgpack")
