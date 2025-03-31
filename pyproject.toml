@@ -22,3 +22,4 @@ dependencies = [
 
 [project.scripts]
 dev = "web_backend:run_server"
+
