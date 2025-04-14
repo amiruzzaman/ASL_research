@@ -125,7 +125,7 @@ def collate_fn(batch):
     return pad_sequence(x, batch_first=True, padding_value=2), pad_sequence(y, batch_first=True, padding_value=2)
 
 
-def load_data(batch_size=1, random_state=29, test_size=0.1):
+def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1):
     """
     Loads the ASLG-PC12 Dataset and creates a Dataloader for it.
     

@@ -2,7 +2,7 @@ import os
 import sys
 
 import time
-from models.signtogloss.datasetloader import load_data
+from models.signtogloss.datasetloader import load_sign_dataset
 import warnings
 import argparse
 
@@ -67,7 +67,7 @@ def validate(model, data, criterion, gloss_to_id):
     return losses, correct 
 
 def train(args):
-    num_classes, train, test, id_to_gloss, gloss_to_id = load_data(args.batch, test_size=0.2)
+    num_classes, train, test, id_to_gloss, gloss_to_id = load_sign_dataset(args.batch, test_size=0.2)
     print(num_classes)
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
@@ -87,7 +87,7 @@ def train(args):
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         criterion = checkpoint['criterion']
         best_loss = checkpoint['best_loss']
-
+    
     # Calculate starting performance of the model
     valid_loss, correct = validate(model, test, criterion, gloss_to_id)
     print(f"Starting Performance: \nValid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
@@ -132,9 +132,6 @@ def train(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ASLGlossModel")
     
-    # Training or inference mode
-    parser.add_argument('--train', action='store_true')
-    
     # Training procedure
     parser.add_argument('-e', '--epochs', type=int, default=10)
     parser.add_argument('--lr', type=float, default=1e-4)
@@ -146,7 +143,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Either train the model or use the model
-    if args.train:
-        train(args)
+    train(args)
 
 

@@ -3,12 +3,12 @@ import sys
 
 import torch
 import torch.nn as nn
-from positionalencoding import PositionalEncoding
+from models.glosstoenglish.positionalencoding import PositionalEncoding
 from models.utils import generate_square_subsequent_mask
 from models.utils import create_mask
 
 class GlossToEnglishModel(nn.Module):
-    def __init__(self, src_vocab_size, trg_vocab_size, d_model=512, heads=8, num_encoders=1, num_decoders=1, dropout=0.1, max_len=1000, activation="relu", device='cpu'):
+    def __init__(self, src_vocab_size=-1, trg_vocab_size=-1, d_model=512, heads=8, num_encoders=1, num_decoders=1, dropout=0.1, max_len=1000, activation="relu", device='cpu'):
         """
         Creates the translator nn module.
 
@@ -32,6 +32,8 @@ class GlossToEnglishModel(nn.Module):
         """
 
         super(GlossToEnglishModel, self).__init__()
+        if src_vocab_size == -1 or trg_vocab_size == -1:
+            return
 
         # Embedding layers for the source and target inputs
         self.d_model = d_model

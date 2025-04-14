@@ -1,5 +1,9 @@
 import torch
 
+def convert_to_tokens(sequence, gloss_vocab, device):
+    tokens = torch.tensor([gloss_vocab[word if word in gloss_vocab else "<unk>"] for word in sequence.split()]).to(device)
+    tokens = torch.cat([torch.tensor([gloss_vocab["<sos>"]]), tokens, torch.tensor([gloss_vocab["<eos>"]])]).to(device)
+    return tokens
 
 def create_mask(src, trg, pad_idx, device):
     # Get sequence length
@@ -13,8 +17,7 @@ def create_mask(src, trg, pad_idx, device):
     # Overlay the mask over the original input
     src_padding_mask = (src == pad_idx)
     tgt_padding_mask = (trg == pad_idx)
-    return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
-    
+    return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask  
 
 def generate_square_subsequent_mask(size, device):
     mask = (torch.tril(torch.ones((size, size), device=device)) == 1)

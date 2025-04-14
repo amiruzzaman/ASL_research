@@ -46,16 +46,3 @@ def load_data(batch_size=1, random_state=29, test_size=0.1):
         train_loader, test_loader
 
 
-# out = torch.tensor([
-#     [[9, 1], [0, 2], [0, 3]],
-#     [[0, 1], [0, 12], [0, 3]],
-#     [[0, 1], [0, 2], [0, 3]],
-# ])
-
-# test = torch.tensor([[1, 2, 3],
-#         [1, 5, 3],
-#         [1, 2, 3]])
-
-# seq_len = [0, 1, 0]
-# print(torch.cat([out[i, length, :] for i, length in enumerate(seq_len)]).reshape(-1, out.shape[-1]))
-# print(out[range(out.shape[0]), seq_len, :])    

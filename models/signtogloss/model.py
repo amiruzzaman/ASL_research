@@ -19,8 +19,5 @@ class SignToGlossModel(nn.Module):
         
         
     def forward(self, x, device, h=None, c=None):
-        # h = torch.zeros(, x.shape[0], self.d_model).to(device) if h is None else h
-        # c = torch.zeros(self.lstm.num_layers, x.shape[0], self.d_model).to(device) if c is None else c
-        
         out, _ = self.lstm(x)    
         return self.ff(out[:, -1, :])

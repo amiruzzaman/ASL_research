@@ -1,7 +1,7 @@
 import sys
 
 import time
-from models.glosstoenglish.datasetloader import load_data
+from models.glosstoenglish.datasetloader import load_alsg_dataset
 from models.glosstoenglish.model import GlossToEnglishModel
 import warnings
 import argparse
@@ -13,48 +13,12 @@ import torch.optim.lr_scheduler as lr_scheduler
 
 from tqdm import tqdm 
 
-from models.utils import create_mask
+from models.utils import convert_to_tokens, create_mask
 from models.utils import generate_square_subsequent_mask
 
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 warnings.filterwarnings("ignore")
-
-def inference(args):
-    _, _, gloss_vocab, gloss_id, text_vocab, text_id = load_data(args.batch)
-    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, args.dropout, device=DEVICE).to(DEVICE)
-
-    # If the save data argument is not null, then we load
-    if args.model_path:
-        print("Loading model...")
-        checkpoint = torch.load(args.model_path, weights_only=False)
-        model.load_state_dict(checkpoint['model_state_dict'])
-    
-    model.eval()
-    
-    while True:
-        print("~~ Translate ASL Gloss to English Sentence ~~")
-        sequence = input("ASL Sequence: ")
-    
-        if sequence.lower() == "<stop>":
-            break
-        
-        # Turns the string input into a tensor containing tokens 
-        tokens = torch.tensor([gloss_vocab[word if word in gloss_vocab else "<unk>"] for word in sequence.split()]).to(DEVICE)
-        tokens = torch.cat([torch.tensor([gloss_vocab["<sos>"]]).to(DEVICE), tokens, torch.tensor([gloss_vocab["<eos>"]]).to(DEVICE)]).to(DEVICE)
-
-        num_tokens = tokens.shape[0]
-        mask = torch.zeros(num_tokens, num_tokens).type(torch.bool).to(DEVICE)
-        
-        # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string 
-        translated_tokens = None
-        if args.greedy:
-            translated_tokens = model.greedy_decode(tokens, mask, gloss_vocab, text_vocab, device=DEVICE).flatten()
-        else:
-            translated_tokens = model.beam_search(tokens, mask, gloss_vocab, text_vocab, device=DEVICE, beam_size=args.beam_size, max_len=num_tokens + 5, temperature=0.5).flatten()
-        
-        translated = " ".join([text_id[token] for token in translated_tokens.tolist()]).replace("<sos>", "").replace("<eos>", "")
-        print(f"Translated Sequence: {translated[1:]}\n")
 
     
 def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
@@ -146,7 +110,7 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
     return losses, correct
     
 def train(args):
-    train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_data(args.batch)
+    train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_alsg_dataset(args.batch)
     
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
@@ -237,8 +201,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Either train the model or use the model
-    if args.train:
-        train(args)
-    else:
-        inference(args)
+    train(args)
 
