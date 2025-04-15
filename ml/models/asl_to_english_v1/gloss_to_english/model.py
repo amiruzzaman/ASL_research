@@ -4,8 +4,8 @@ import sys
 import torch
 import torch.nn as nn
 from ml.models.asl_to_english_v1.gloss_to_english.positional_encoding import PositionalEncoding
-from ml.utils import generate_square_subsequent_mask
-from ml.utils import create_mask
+from ml.tools.utils import generate_square_subsequent_mask
+from ml.tools.utils import create_mask
 
 class GlossToEnglishModel(nn.Module):
     def __init__(self, src_vocab_size=-1, trg_vocab_size=-1, d_model=512, heads=8, num_encoders=1, num_decoders=1, dropout=0.1, max_len=1000, activation="relu", device='cpu'):
@@ -30,7 +30,7 @@ class GlossToEnglishModel(nn.Module):
 
             activation: The activation function for the layers in the model        
         """
-
+        
         super(GlossToEnglishModel, self).__init__()
         if src_vocab_size == -1 or trg_vocab_size == -1:
             return
