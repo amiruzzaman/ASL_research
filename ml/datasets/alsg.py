@@ -38,7 +38,7 @@ class ASLDataset(Dataset):
 
 
     def __len__(self):
-        return len(self.gloss_set)
+        return len(self.src_set)
     
     def __getitem__(self, index):
         """
@@ -60,7 +60,7 @@ class ASLDataset(Dataset):
         for filter in self.src_filters:
             src = src.replace(filter, "")
 
-        for trg in self.trg_filters:
+        for filter in self.trg_filters:
             trg = trg.replace(filter, "")
 
         # Split sentence of ASL gloss and English text to a list of words (Adds the SOS and EOS also)
@@ -157,16 +157,16 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse = Fa
         
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
-    train_dataset, test_dataset = None
+    train_dataset, test_dataset = None, None
 
-    if reverse:
-        train_dataset = ASLDataset(gloss_train, english_train, gloss_vocab, text_vocab, filters)
-        test_dataset = ASLDataset(gloss_test, english_test, gloss_vocab, text_vocab, filters)
+    if not reverse:
+        train_dataset = ASLDataset(gloss_train, english_train, gloss_vocab, text_vocab, src_filters=filters)
+        test_dataset = ASLDataset(gloss_test, english_test, gloss_vocab, text_vocab, src_filters=filters)
     else:
-        train_dataset = ASLDataset(english_train, gloss_train, text_vocab, gloss_vocab, filters)
-        test_dataset = ASLDataset(english_test, gloss_test, text_vocab, gloss_vocab, filters)
+        train_dataset = ASLDataset(english_train, gloss_train, text_vocab, gloss_vocab, trg_filters=filters)
+        test_dataset = ASLDataset(english_test, gloss_test, text_vocab, gloss_vocab, trg_filters=filters)
 
     train_dl = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
     test_dl = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
-    
+
     return train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id

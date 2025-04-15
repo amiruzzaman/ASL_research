@@ -10,7 +10,7 @@ from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
 from ml.datasets.alsg import load_alsg_dataset
 from ml.datasets.sign import load_sign_dataset
 
-from ml.utils import extract_landmarks
+from ml.tools.utils import extract_landmarks
 
 import json
 import cv2 as cv
@@ -18,7 +18,7 @@ import mediapipe as mp
 import os
 import msgpack
 import torch
-from ml.utils import extract_landmarks, get_feature
+from ml.tools.utils import extract_landmarks, get_feature
 
 # Videos are going to be 30 frames in length
 sequence_length = 30

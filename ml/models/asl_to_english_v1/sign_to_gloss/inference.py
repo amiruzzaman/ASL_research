@@ -3,7 +3,7 @@ import mediapipe as mp
 import torch
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from models.utils import extract_landmarks
+from ml.tools.utils import extract_landmarks
 
 
 if __name__ == "__main__":

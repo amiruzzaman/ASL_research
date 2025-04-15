@@ -4,7 +4,7 @@ import mediapipe as mp
 import os
 import msgpack
 import torch
-from models.utils import extract_landmarks, get_feature
+from ml.tools.utils import extract_landmarks, get_feature
 
 # Path for exported data, numpy arrays
 DATA_PATH = os.path.join('data', 'signs') 

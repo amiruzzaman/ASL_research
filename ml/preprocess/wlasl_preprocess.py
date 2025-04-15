@@ -5,7 +5,7 @@ from tqdm import tqdm
 import cv2 as cv
 import mediapipe as mp
 import torch
-from ml.utils import extract_landmarks
+from ml.tools.utils import extract_landmarks
 
 mp_holistic = mp.solutions.holistic
 mp_drawing = mp.solutions.drawing_utils

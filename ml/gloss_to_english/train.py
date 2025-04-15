@@ -2,7 +2,7 @@ import sys
 
 import time
 from ml.datasets.alsg import load_alsg_dataset
-from ml.models.asl_to_english_v1.gloss_to_english.model import GlossToEnglishModel
+from ml.gloss_to_english.model import GlossToEnglishModel
 import warnings
 import argparse
 
@@ -109,19 +109,13 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
     return losses, correct
     
 def train(args):
-    args.reverse
-    train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_alsg_dataset(args.batch, reverse=args.reverse)
+    train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_alsg_dataset(args.batch)
     
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
     curr_epoch = 1
-    model = None
-    if not args.reverse:
-        model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
-    else:
-        model = GlossToEnglishModel(len(text_vocab), len(gloss_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
-
-    criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"] if not args.reverse else gloss_vocab["<pad>"]).to(DEVICE)
+    model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
+    criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"]).to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=args.adams_ep)
     best_loss = torch.inf
     
@@ -137,20 +131,16 @@ def train(args):
         best_loss = checkpoint['best_loss']
 
     # Calculate starting performance of the model
-    valid_loss, correct = validate(model, train_dl, criterion, gloss_vocab, text_vocab) if not args.reverse else \
-        validate(model, train_dl, criterion, text_vocab, gloss_vocab)
-    
+    valid_loss, correct = validate(model, train_dl, criterion, gloss_vocab, text_vocab)
     print(f"Starting Performance: \nValid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
 
     for epoch in range(curr_epoch, EPOCHS + 1):
         # Train through the entire training dataset and keep track of total time
         start_time = time.time()
-        train_loss = train_epoch(model, train_dl, optimizer, criterion, gloss_vocab, text_vocab, epoch) if not args.reverse else \
-            train_epoch(model, train_dl, optimizer, criterion, text_vocab, gloss_vocab, epoch)
+        train_loss = train_epoch(model, train_dl, optimizer, criterion, gloss_vocab, text_vocab, epoch)
         
         # Goes through the validation dataset 
-        valid_loss, correct = validate(model, test_dl, criterion, gloss_vocab, text_vocab) if not args.reverse else \
-            validate(model, test_dl, criterion, text_vocab, gloss_vocab)
+        valid_loss, correct = validate(model, test_dl, criterion, gloss_vocab, text_vocab)
 
         # If the average loss from testing the validation data is smallest than the best model at that point,
         # Then we save the current model 
@@ -185,7 +175,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ASLGlossModel")
     
     # Training procedure
-    parser.add_argument('--reverse', action='store_true')
     parser.add_argument('-e', '--epochs', type=int, default=10)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--model_path', type=str)
