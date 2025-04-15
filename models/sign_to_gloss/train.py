@@ -2,7 +2,7 @@ import os
 import sys
 
 import time
-from models.signtogloss.datasetloader import load_sign_dataset
+from models.data_loaders.sign_data_loader import load_sign_dataset
 import warnings
 import argparse
 
@@ -13,7 +13,7 @@ import torch.optim.lr_scheduler as lr_scheduler
 
 from tqdm import tqdm 
 
-from models.signtogloss.model import SignToGlossModel
+from models.sign_to_gloss.model import SignToGlossModel
 from models.utils import create_mask
 from models.utils import generate_square_subsequent_mask
 

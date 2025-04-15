@@ -3,7 +3,7 @@ import sys
 
 import torch
 import torch.nn as nn
-from models.glosstoenglish.positionalencoding import PositionalEncoding
+from models.glosstoenglish.positional_encoding import PositionalEncoding
 from models.utils import generate_square_subsequent_mask
 from models.utils import create_mask
 

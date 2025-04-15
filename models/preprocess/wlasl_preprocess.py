@@ -5,7 +5,7 @@ from tqdm import tqdm
 import cv2 as cv
 import mediapipe as mp
 import torch
-from models.signtogloss.model import SignToGlossModel
+from models.sign_to_gloss.model import SignToGlossModel
 from models.utils import extract_landmarks
 
 mp_holistic = mp.solutions.holistic

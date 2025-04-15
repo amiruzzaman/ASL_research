@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 
 DATA_PATH = os.path.join("data", "signs")
+
 class SignToVideoDataset(Dataset):
     def __init__(self, glosses, features):
         super().__init__()
