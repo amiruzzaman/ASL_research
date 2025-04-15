@@ -12,7 +12,7 @@ import spacy
 from tqdm import tqdm
 
 class ASLDataset(Dataset):
-    def __init__(self, gloss_set, text_set, gloss_vocab, text_vocab, gloss_filters=[], text_filters=[]):
+    def __init__(self, src_set, trg_set, src_vocab, trg_vocab, src_filters=[], trg_filters=[]):
         """
         Custom dataset class for the ASLG-PC12 dataset
 
@@ -27,14 +27,14 @@ class ASLDataset(Dataset):
             text_filters: A list that contains certain words to get rid of in the texts
         """
         
-        self.gloss_set = gloss_set
-        self.text_set = text_set
+        self.src_set = src_set
+        self.trg_set = trg_set
 
-        self.gloss_vocab = gloss_vocab
-        self.text_vocab = text_vocab
+        self.src_vocab = src_vocab
+        self.trg_vocab = trg_vocab
 
-        self.gloss_filters = gloss_filters
-        self.text_filters = text_filters    
+        self.src_filters = src_filters
+        self.trg_filters = trg_filters    
 
 
     def __len__(self):
@@ -53,25 +53,25 @@ class ASLDataset(Dataset):
             Two sequence of tokens for the glosses and sentences with an <SOS> token added to the start 
             and an <EOS> token added to the end.
         """
-        gloss = self.gloss_set[index]
-        text = self.text_set[index]
+        src = self.src_set[index]
+        trg = self.trg_set[index]
 
         # Gets rid of certain words in the keywords
-        for filter in self.gloss_filters:
-            gloss = gloss.replace(filter, "")
+        for filter in self.src_filters:
+            src = src.replace(filter, "")
 
-        for filter in self.text_filters:
-            text = text.replace(filter, "")
+        for trg in self.trg_filters:
+            trg = trg.replace(filter, "")
 
         # Split sentence of ASL gloss and English text to a list of words (Adds the SOS and EOS also)
-        gloss_words = ["<sos>"] + gloss.split() + ["<eos>"]
-        text_words = ["<sos>"] + text.split() + ["<eos>"]
+        src_words = ["<sos>"] + src.split() + ["<eos>"]
+        trg_words = ["<sos>"] + trg.split() + ["<eos>"]
             
         # Convert those list of words to tokens/indices in the vocab
-        gloss_tokens = torch.tensor([self.gloss_vocab[word] for word in gloss_words])
-        text_tokens = torch.tensor([self.text_vocab[word] for word in text_words])
+        src_tokens = torch.tensor([self.src_vocab[word] for word in src_words])
+        trg_tokens = torch.tensor([self.trg_vocab[word] for word in trg_words])
         
-        return gloss_tokens, text_tokens
+        return src_tokens, trg_tokens
 
 def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"], filters = []):
     """
@@ -125,7 +125,7 @@ def collate_fn(batch):
     return pad_sequence(x, batch_first=True, padding_value=2), pad_sequence(y, batch_first=True, padding_value=2)
 
 
-def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1):
+def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse = False):
     """
     Loads the ASLG-PC12 Dataset and creates a Dataloader for it.
     
@@ -157,8 +157,14 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1):
         
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
-    train_dataset = ASLDataset(gloss_train, english_train, gloss_vocab, text_vocab, filters)
-    test_dataset = ASLDataset(gloss_test, english_test, gloss_vocab, text_vocab, filters)
+    train_dataset, test_dataset = None
+
+    if reverse:
+        train_dataset = ASLDataset(gloss_train, english_train, gloss_vocab, text_vocab, filters)
+        test_dataset = ASLDataset(gloss_test, english_test, gloss_vocab, text_vocab, filters)
+    else:
+        train_dataset = ASLDataset(english_train, gloss_train, text_vocab, gloss_vocab, filters)
+        test_dataset = ASLDataset(english_test, gloss_test, text_vocab, gloss_vocab, filters)
 
     train_dl = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
     test_dl = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
