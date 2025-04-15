@@ -4,13 +4,13 @@ import torch
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-from models.glosstoenglish.model import GlossToEnglishModel
-from models.signtogloss.model import SignToGlossModel
+from ml.models.asl_to_english_v1.gloss_to_english.model import GlossToEnglishModel
+from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
 
-from models.datasetloaders.alsgdatasetloader import load_alsg_dataset
-from models.datasetloaders.signdatasetloader import load_sign_dataset
+from ml.datasets.alsg import load_alsg_dataset
+from ml.datasets.sign import load_sign_dataset
 
-from models.utils import extract_landmarks
+from ml.utils import extract_landmarks
 
 import json
 import cv2 as cv
@@ -18,7 +18,7 @@ import mediapipe as mp
 import os
 import msgpack
 import torch
-from models.utils import extract_landmarks, get_feature
+from ml.utils import extract_landmarks, get_feature
 
 # Videos are going to be 30 frames in length
 sequence_length = 30

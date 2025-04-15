@@ -2,7 +2,7 @@ import os
 import sys
 
 import time
-from models.data_loaders.sign_data_loader import load_sign_dataset
+from ml.datasets.sign import load_sign_dataset
 import warnings
 import argparse
 
@@ -13,9 +13,9 @@ import torch.optim.lr_scheduler as lr_scheduler
 
 from tqdm import tqdm 
 
-from models.sign_to_gloss.model import SignToGlossModel
-from models.utils import create_mask
-from models.utils import generate_square_subsequent_mask
+from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
+from ml.utils import create_mask
+from ml.utils import generate_square_subsequent_mask
 
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

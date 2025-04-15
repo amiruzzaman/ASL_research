@@ -1,8 +1,8 @@
 import sys
 
 import time
-from models.glosstoenglish.datasetloader import load_alsg_dataset
-from models.glosstoenglish.model import GlossToEnglishModel
+from ml.datasets.alsg import load_alsg_dataset
+from ml.models.asl_to_english_v1.gloss_to_english.model import GlossToEnglishModel
 import warnings
 import argparse
 
@@ -13,8 +13,8 @@ import torch.optim.lr_scheduler as lr_scheduler
 
 from tqdm import tqdm 
 
-from models.utils import convert_to_tokens, create_mask
-from models.utils import generate_square_subsequent_mask
+from ml.utils import convert_to_tokens, create_mask
+from ml.utils import generate_square_subsequent_mask
 
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

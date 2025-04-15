@@ -5,8 +5,7 @@ from tqdm import tqdm
 import cv2 as cv
 import mediapipe as mp
 import torch
-from models.sign_to_gloss.model import SignToGlossModel
-from models.utils import extract_landmarks
+from ml.utils import extract_landmarks
 
 mp_holistic = mp.solutions.holistic
 mp_drawing = mp.solutions.drawing_utils
@@ -42,7 +41,6 @@ def extract_data_from_video(path):
         frames.append(image)
         features.append(feature)
         
-
     return frames, features
 
 # Loading data json
