@@ -1,8 +1,8 @@
 import sys
 
 import time
-from models.glosstoenglish.datasetloader import load_alsg_dataset
-from models.glosstoenglish.model import GlossToEnglishModel
+from models.data_loaders.alsg_data_loader import load_alsg_dataset
+from models.gloss_to_english.model import GlossToEnglishModel
 import warnings
 import argparse
 
@@ -20,7 +20,6 @@ from models.utils import generate_square_subsequent_mask
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 warnings.filterwarnings("ignore")
 
-    
 def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
     # Set model to training mode 
     model.train()
@@ -174,9 +173,6 @@ def train(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ASLGlossModel")
-    
-    # Training or inference mode
-    parser.add_argument('--train', action='store_true')
     
     # Training procedure
     parser.add_argument('-e', '--epochs', type=int, default=10)
