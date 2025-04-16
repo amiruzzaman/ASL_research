@@ -2,7 +2,7 @@ import torch
 
 def convert_to_tokens(sequence, gloss_vocab, device):
     tokens = torch.tensor([gloss_vocab[word if word in gloss_vocab else "<unk>"] for word in sequence.split()]).to(device)
-    tokens = torch.cat([torch.tensor([gloss_vocab["<sos>"]]), tokens, torch.tensor([gloss_vocab["<eos>"]])]).to(device)
+    tokens = torch.cat([torch.tensor([gloss_vocab["<sos>"]]).to(device), tokens, torch.tensor([gloss_vocab["<eos>"]]).to(device)]).to(device)
     return tokens
 
 def create_mask(src, trg, pad_idx, device):

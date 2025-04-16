@@ -86,7 +86,7 @@ def get_sequence():
         if features is not None:
             id = torch.argmax(sign_to_gloss(features.view(1, sequence_length, -1).to(DEVICE), device=DEVICE), dim=-1)
             word = id_to_gloss[id.item()]
-
+        
         res.append(word)
         cv.putText(image, ' '.join(res), (150,150), cv.FONT_HERSHEY_SIMPLEX, 1, (0,255, 0), 4, cv.LINE_AA)     
         cv.imshow('OpenCV Feed', image)

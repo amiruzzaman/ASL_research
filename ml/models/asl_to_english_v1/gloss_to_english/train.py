@@ -1,8 +1,9 @@
+import os
 import sys
 
 import time
 from ml.datasets.alsg import load_alsg_dataset
-from ml.models.asl_to_english_v1.gloss_to_english.model import GlossToEnglishModel
+from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
 import warnings
 import argparse
 
@@ -48,7 +49,7 @@ def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
         actual = out.reshape(-1, out.shape[-1])
         expected = trg[:, 1:].reshape(-1)
 
-        # We zero the gradients of the model, calculate the total loss of the sample
+        # We zero the gradients of the model, cadlculate the total loss of the sample
         # Then compute the gradient vector for the model over the loss
 
         # For the loss function, the reason why the expected is the target sequence offsetted forward by one is
@@ -109,7 +110,6 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
     return losses, correct
     
 def train(args):
-    args.reverse
     train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_alsg_dataset(args.batch, reverse=args.reverse)
     
     # Creating the translation (Transformer) model
@@ -117,13 +117,15 @@ def train(args):
     curr_epoch = 1
     model = None
     if not args.reverse:
-        model = GlossToEnglishModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
+        model = TranslatorModel(len(gloss_vocab), len(text_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
     else:
-        model = GlossToEnglishModel(len(text_vocab), len(gloss_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
+        model = TranslatorModel(len(text_vocab), len(gloss_vocab), args.dmodel, args.heads, args.encoders, args.decoders, device=DEVICE).to(DEVICE)
 
     criterion = nn.CrossEntropyLoss(ignore_index=text_vocab["<pad>"] if not args.reverse else gloss_vocab["<pad>"]).to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=args.adams_ep)
     best_loss = torch.inf
+    accuracy_history = []
+    loss_history = []
     
     # If the save data argument is not null, then we load the data to continue training
     if args.model_path:
@@ -135,13 +137,15 @@ def train(args):
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         criterion = checkpoint['criterion']
         best_loss = checkpoint['best_loss']
+        accuracy_history = checkpoint['accuracy_history']
+        loss_history = checkpoint['loss_history']
 
     # Calculate starting performance of the model
     valid_loss, correct = validate(model, train_dl, criterion, gloss_vocab, text_vocab) if not args.reverse else \
         validate(model, train_dl, criterion, text_vocab, gloss_vocab)
     
     print(f"Starting Performance: \nValid Accuracy: {(100*correct):>0.1f}%, Valid Average loss: {valid_loss:>8f}\n")
-
+    
     for epoch in range(curr_epoch, EPOCHS + 1):
         # Train through the entire training dataset and keep track of total time
         start_time = time.time()
@@ -151,6 +155,9 @@ def train(args):
         # Goes through the validation dataset 
         valid_loss, correct = validate(model, test_dl, criterion, gloss_vocab, text_vocab) if not args.reverse else \
             validate(model, test_dl, criterion, text_vocab, gloss_vocab)
+
+        loss_history.append(valid_loss)
+        accuracy_history.append(loss_history)
 
         # If the average loss from testing the validation data is smallest than the best model at that point,
         # Then we save the current model 
@@ -162,17 +169,11 @@ def train(args):
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'criterion': criterion,
-                    'best_loss': best_loss
-                    }, args.save_path + "/best.pt")
-
-        # Saves model's data after current epoch (Checkpoint system)
-        torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'criterion': criterion,
-                    'best_loss': best_loss
-                    }, args.save_path + f"/epoch_{epoch}.pt")
+                    'best_loss': best_loss,
+                    'loss_history': loss_history,
+                    'accuracy_history': accuracy_history,
+                    'config': args 
+                    }, os.path.join(args.save_path, "best.pt"))
 
         total_time = time.time() - start_time
 
@@ -190,7 +191,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--model_path', type=str)
     parser.add_argument('-b', '--batch', type=int, default=32)
-    parser.add_argument('--adams_ep', type=float, default=5e-9)
+    parser.add_argument('--adams_ep', type=float, default=1e-9)
     parser.add_argument('--factor', type=float, default=0.9)
     parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--weight_decay', type=float, default=1e-9)
@@ -200,7 +201,7 @@ if __name__ == "__main__":
     parser.add_argument('--heads', type=int, default=8)
     parser.add_argument('--encoders', type=int, default=2)
     parser.add_argument('--decoders', type=int, default=2)
-    parser.add_argument('--dropout', type=float, default=0.1)
+    parser.add_argument('--dropout', type=float, default=0.3)
 
     parser.add_argument('--greedy', action='store_true')
     parser.add_argument('--beam_size', type=int, default=25)
