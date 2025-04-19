@@ -1,3 +1,4 @@
+import os
 import msgpack
 from sklearn.model_selection import train_test_split
 import torch
@@ -23,8 +24,9 @@ def collate_fn(batch):
     padded = pad_sequence(features, batch_first=True)
     return glosses, padded, seq_len
 
-def load_data(batch_size=1, random_state=29, test_size=0.1):
-    with open('wlasl.msgpack', 'rb') as file:
+def load_wlasl_dataset(batch_size=1, random_state=29, test_size=0.1):
+    path = os.path.join('data', 'preprocessed', 'wlasl.msgpack')
+    with open(path, 'rb') as file:
         byte_data = file.read()
 
     wlasl = msgpack.unpackb(byte_data)  
@@ -42,7 +44,7 @@ def load_data(batch_size=1, random_state=29, test_size=0.1):
     train_loader = DataLoader(train, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
     test_loader = DataLoader(test, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
 
-    return wlasl["num_classes"], wlasl["classes"], {gloss:id for id, gloss in enumerate(wlasl["classes"])}, \
-        train_loader, test_loader
+    return wlasl["num_classes"], train_loader, test_loader, {id:gloss for id, gloss in enumerate(wlasl["classes"])}, \
+        {gloss:id for id, gloss in enumerate(wlasl["classes"])},
 
 

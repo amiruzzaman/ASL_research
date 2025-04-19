@@ -7,10 +7,12 @@ import torch
 from ml.tools.utils import extract_landmarks, get_feature
 
 # Path for exported data, numpy arrays
-DATA_PATH = os.path.join('data', 'signs') 
+DATA_PATH = os.path.join('ml', 'data', 'raw', 'signs') 
 
-with open(os.path.join(DATA_PATH, "labels.txt"), 'r') as file:
-    actions = file.read().strip().split(",")
+# with open(os.path.join(DATA_PATH, "labels.txt"), 'r') as file:
+#     actions = file.read().strip().split(",")
+
+actions = input("Enter actions seperated by commas: ").strip().split(",")
 
 # Thirty videos worth of data
 no_sequences = 50
@@ -38,7 +40,12 @@ holistic_model = mp_holistic.Holistic(
 )
 
 for action in actions:
-    for sequence in range(no_sequences):
+    filtered = list(map(lambda x: x.replace('.json', ''), os.listdir(os.path.join(DATA_PATH, action))))
+    print(filtered)
+    num = max(list(map(int, filtered))) if len(filtered) else 0
+    print(num)
+    
+    for sequence in range(num + 1, num + no_sequences + 1):
         features = None
 
         for frame_num in range(sequence_length):
@@ -58,7 +65,6 @@ for action in actions:
             mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
             
-
             if frame_num == 0: 
                 cv.putText(image, 'STARTING COLLECTION', (120,200), \
                     cv.FONT_HERSHEY_SIMPLEX, 1, (0,255, 0), 4, cv.LINE_AA)

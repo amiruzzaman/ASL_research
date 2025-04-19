@@ -2,7 +2,8 @@ import os
 import sys
 
 import time
-from ml.datasets.sign import load_sign_dataset
+from ml.dataset_loaders.sign import load_sign_dataset
+from ml.dataset_loaders.wlasl import load_wlasl_dataset
 import warnings
 import argparse
 
@@ -68,7 +69,6 @@ def validate(model, data, criterion, gloss_to_id):
 
 def train(args):
     num_classes, train, test, id_to_gloss, gloss_to_id = load_sign_dataset(args.batch, test_size=0.2)
-    print(num_classes)
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
     curr_epoch = 1
@@ -114,13 +114,6 @@ def train(args):
                     }, args.save_path + "/best.pt")
 
         # Saves model's data after current epoch (Checkpoint system)
-        torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'criterion': criterion,
-                    'best_loss': best_loss
-                    }, args.save_path + f"/epoch_{epoch}.pt")
 
         total_time = time.time() - start_time
 

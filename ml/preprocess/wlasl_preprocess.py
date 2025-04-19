@@ -44,7 +44,7 @@ def extract_data_from_video(path):
     return frames, features
 
 # Loading data json
-with open("data/WLASL/start_kit/WLASL_v0.3.json", 'r') as file:
+with open("ml/data/raw/WLASL/start_kit/WLASL_v0.3.json", 'r') as file:
     dataset = json.load(file)
 
 samples = []
@@ -61,7 +61,7 @@ for label in dataset[:50]:
     
     for instance in tqdm(instances, "Instances: "):
         id = instance["video_id"]
-        source_path = os.path.join('data', 'WLASL', 'start_kit', 'raw_videos', id + '.mp4')
+        source_path = os.path.join('ml', 'data', 'raw', 'WLASL', 'start_kit', 'raw_videos', id + '.mp4')
         
         if not os.path.exists(source_path):
             continue
@@ -70,7 +70,7 @@ for label in dataset[:50]:
         data = [feature.tolist() for feature in features]
         samples.append({"label": gloss, "features": data})
 
-with open('wlasl.msgpack', 'wb') as f:
+with open(os.path.join('ml', 'data', 'preprocessed', 'wlasl.msgpack'), 'wb') as f:
     packed = msgpack.packb({"num_classes": num_classes, "classes": classes, "samples": samples})
     f.write(packed)
     

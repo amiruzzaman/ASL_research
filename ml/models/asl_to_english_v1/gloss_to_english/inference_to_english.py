@@ -1,7 +1,7 @@
 import sys
 
 import time
-from ml.datasets.alsg import load_alsg_dataset
+from ml.dataset_loaders.alsg import load_alsg_dataset
 from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
 import warnings
 import argparse
