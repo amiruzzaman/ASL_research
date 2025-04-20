@@ -14,8 +14,7 @@ import torch.optim.lr_scheduler as lr_scheduler
 
 from tqdm import tqdm 
 
-from ml.tools.utils import convert_to_tokens, create_mask
-from ml.tools.utils import generate_square_subsequent_mask
+from ml.utils.transformer import convert_to_tokens, create_mask, generate_square_subsequent_mask
 
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -174,7 +173,7 @@ def train(args):
                     'accuracy_history': accuracy_history,
                     'config': args 
                     }, os.path.join(args.save_path, "best.pt"))
-        
+
         total_time = time.time() - start_time
 
         print(f"\nEpoch Time: {total_time:.1f} seconds")
