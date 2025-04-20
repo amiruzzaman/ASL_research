@@ -12,8 +12,8 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class ASLToEnglish:
     def __init__(self):
         # Loading datasets
-        self.num_classes, _, _, self.id_to_gloss, _ = load_sign_dataset()
-        _, _, self.gloss_vocab, self.gloss_to_id, self.text_vocab, self.text_to_id = load_alsg_dataset()
+        self.num_classes, _, _, self.to_gloss, _ = load_sign_dataset()
+        _, _, self.gloss_vocab, _, self.text_vocab, self.to_text = load_alsg_dataset()
 
         # Creating Sign to Gloss model
         self.sign_to_gloss = SignToGlossModel(225, self.num_classes, 512, device=DEVICE)
@@ -32,7 +32,7 @@ class ASLToEnglish:
     def translate(self, signs):
         glosses = self.translate_signs(signs)
         sentence = self.translate_glosses(glosses)
-
+        
         return sentence
 
     def translate_signs(self, sequence):
@@ -40,24 +40,24 @@ class ASLToEnglish:
         sequence = sequence.to(DEVICE)
         id = torch.argmax(self.sign_to_gloss(sequence, device=DEVICE), dim=-1)
 
-        return ' '.join([self.id_to_gloss[id[i].item()] for i in range(sequence_length)])
-    
+        return ' '.join([self.to_gloss[id[i].item()] for i in range(sequence_length)])
+
     def translate_sign(self, sequence):
         sequence_length, _ = sequence.shape
         sequence = sequence.unsqueeze(dim=0).to(DEVICE)
         id = torch.argmax(self.sign_to_gloss(sequence, device=DEVICE), dim=-1)[0].item()
 
-        return id, self.id_to_gloss[id]
+        return id, self.to_gloss[id]
     
     def translate_glosses(self, sequence):
-        tokens = convert_to_tokens(sequence.split(), self.text_vocab)
+        tokens = convert_to_tokens(sequence.split(), self.gloss_vocab)
         num_tokens = tokens.shape[0]
         mask = torch.zeros(num_tokens, num_tokens).type(torch.bool).to(DEVICE)
         
         # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string 
-        translated_tokens = self.gloss_to_english.greedy_decode(tokens, mask, self.text_vocab, self.gloss_vocab, \
+        translated_tokens = self.gloss_to_english.greedy_decode(tokens, mask, self.gloss_vocab, self.text_vocab, \
             device=DEVICE).flatten()
         
-        translated = ' '.join([self.english_to_id[token] for token in translated_tokens.tolist()][1:-1])
+        translated = ' '.join([self.to_text[token] for token in translated_tokens.tolist()][1:-1])
         return translated
         

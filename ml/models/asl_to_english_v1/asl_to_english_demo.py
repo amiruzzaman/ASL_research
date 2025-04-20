@@ -67,7 +67,6 @@ def get_sign():
     
     return features
 
-
 while is_running:
    sequence = torch.empty(0)
 
@@ -83,8 +82,7 @@ while is_running:
         cv.imshow('OpenCV Feed', image)
         k = cv.waitKey(2000)
 
-   print(model.translate_signs(sequence))
+   print(model.translate(sequence))
     
-
 cap.release()
 cv.destroyAllWindows()
