@@ -1,7 +1,7 @@
 import sys
 
 import time
-from ml.dataset_loaders.alsg import load_alsg_dataset
+from ml.dataloaders.alsg_dataloader import load_alsg_dataset
 from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
 import warnings
 import argparse
@@ -58,25 +58,8 @@ def inference(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ASLGlossModel")
 
-    parser.add_argument('--reverse', action='store_true')
-    parser.add_argument('-e', '--epochs', type=int, default=10)
-    parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--model_path', type=str)
-    parser.add_argument('-b', '--batch', type=int, default=32)
-    parser.add_argument('--adams_ep', type=float, default=1e-9)
-    parser.add_argument('--factor', type=float, default=0.9)
-    parser.add_argument('--patience', type=int, default=10)
-    parser.add_argument('--weight_decay', type=float, default=1e-9)
-    
-    # Translation Model Arguments
-    parser.add_argument('--dmodel', type=int, default=512)
-    parser.add_argument('--heads', type=int, default=8)
-    parser.add_argument('--encoders', type=int, default=2)
-    parser.add_argument('--decoders', type=int, default=2)
-    parser.add_argument('--dropout', type=float, default=0.3)
-
     parser.add_argument('--greedy', action='store_true')
     parser.add_argument('--beam_size', type=int, default=25)
-    parser.add_argument('--save_path', type=str, default=f"./")
-
+    parser.add_argument('--model_path', type=str, default=f"./")
+    
     inference(parser.parse_args())

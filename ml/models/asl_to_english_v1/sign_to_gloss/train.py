@@ -2,8 +2,8 @@ import os
 import sys
 
 import time
-from ml.dataset_loaders.sign import load_sign_dataset
-from ml.dataset_loaders.wlasl import load_wlasl_dataset
+from ml.dataloaders.sign_dataloader import load_sign_dataset
+from ml.dataloaders.wlasl_dataloader import load_wlasl_dataset
 import warnings
 import argparse
 
@@ -56,7 +56,7 @@ def validate(model, data, criterion, gloss_to_id):
     for glosses, landmarks in tqdm(data, desc= "Evaluating"):
         landmarks = landmarks.to(DEVICE)
         ids = torch.tensor([gloss_to_id[gloss] for gloss in glosses]).to(DEVICE)
-
+        
         out = model(landmarks, device=DEVICE)
 
         loss = criterion(out, ids)

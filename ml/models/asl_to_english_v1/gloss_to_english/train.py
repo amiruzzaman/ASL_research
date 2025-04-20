@@ -2,7 +2,7 @@ import os
 import sys
 
 import time
-from ml.dataset_loaders.alsg import load_alsg_dataset
+from ml.dataloaders.alsg_dataloader import load_alsg_dataset
 from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
 import warnings
 import argparse
@@ -174,7 +174,7 @@ def train(args):
                     'accuracy_history': accuracy_history,
                     'config': args 
                     }, os.path.join(args.save_path, "best.pt"))
-
+        
         total_time = time.time() - start_time
 
         print(f"\nEpoch Time: {total_time:.1f} seconds")
