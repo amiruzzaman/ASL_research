@@ -3,7 +3,7 @@ import os
 import torch
 from ml.dataloaders.alsg_dataloader import load_alsg_dataset
 from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
-from ml.tools.utils import convert_to_tokens
+from ml.utils.transformer import convert_to_tokens
 
 PATH = os.path.join('ml', 'saved_models')
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -16,11 +16,11 @@ class EnglishToGloss:
         self.model.load_state_dict(weights['model_state_dict'])
 
         self.model.eval()
-        self.filters = set(["be", "in", "to"])
+        self.invalid_words = set(["be", "in", "to"])
 
     def translate(self, sequence):
         # Turns the string input into a tensor containing tokens 
-        tokens = convert_to_tokens(sequence, self.text_vocab, DEVICE)
+        tokens = convert_to_tokens(sequence.lower(), self.text_vocab, DEVICE)
         
         num_tokens = tokens.shape[0]
         mask = torch.zeros(num_tokens, num_tokens).type(torch.bool).to(DEVICE)
@@ -28,6 +28,6 @@ class EnglishToGloss:
         # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string 
         translated_tokens = self.model.greedy_decode(tokens, mask, self.text_vocab, self.gloss_vocab, device=DEVICE).flatten()
         translated = [self.to_gloss[token] for token in translated_tokens.tolist()]
-        translated = list(filter(lambda word: word not in self.filters, translated))
+        translated = list(filter(lambda word: word not in self.invalid_words, translated))
         
         return ' '.join(translated[1:-1]).upper()

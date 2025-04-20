@@ -11,7 +11,7 @@ from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
 from ml.dataloaders.alsg_dataloader import load_alsg_dataset
 from ml.dataloaders.sign_dataloader import load_sign_dataset
 
-from ml.tools.utils import extract_landmarks
+from ml.utils.landmarks import extract_landmarks, get_feature, concatenate
 
 import json
 import cv2 as cv
@@ -19,7 +19,7 @@ import mediapipe as mp
 import os
 import msgpack
 import torch
-from ml.tools.utils import extract_landmarks, get_feature
+
 
 # Videos are going to be 30 frames in length
 sequence_length = 30
@@ -49,7 +49,6 @@ def get_sign():
     features = torch.empty(0)
 
     for frame_num in range(sequence_length):
-            # Read feed
         ret, image = cap.read()
 
         if not ret:
@@ -58,8 +57,8 @@ def get_sign():
         # Get landmark data from the current image and 
         results = holistic_model.process(image)
         landmarks = get_feature(results)
-        features = torch.cat((features, landmarks.unsqueeze(0)), dim=0) 
-
+        features = concatenate(features, landmarks)
+        
         # Draw the hand connections and show screen
         draw_connections(image, results)
         cv.imshow('OpenCV Feed', image)
@@ -75,7 +74,7 @@ while is_running:
         ret, image = cap.read()
 
         # Adds the sign onto the sequence and translates it
-        sequence = torch.cat((sequence, sign.unsqueeze(0)), dim=0)
+        sequence = concatenate(sequence, sign)
         id, word = model.translate_sign(sign)
 
         cv.putText(image, word, (150,150), cv.FONT_HERSHEY_SIMPLEX, 1, (0,255, 0), 4, cv.LINE_AA)     
@@ -83,6 +82,6 @@ while is_running:
         k = cv.waitKey(2000)
 
    print(model.translate(sequence))
-    
+
 cap.release()
 cv.destroyAllWindows()

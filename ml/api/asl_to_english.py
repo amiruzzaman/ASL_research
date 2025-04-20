@@ -4,7 +4,7 @@ from ml.dataloaders.alsg_dataloader import load_alsg_dataset
 from ml.dataloaders.sign_dataloader import load_sign_dataset
 from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
 from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
-from ml.tools.utils import convert_to_tokens
+from ml.utils.transformer import convert_to_tokens
 
 PATH = os.path.join('ml', 'saved_models')
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -32,7 +32,7 @@ class ASLToEnglish:
     def translate(self, signs):
         glosses = self.translate_signs(signs)
         sentence = self.translate_glosses(glosses)
-        
+
         return sentence
 
     def translate_signs(self, sequence):
@@ -50,7 +50,7 @@ class ASLToEnglish:
         return id, self.to_gloss[id]
     
     def translate_glosses(self, sequence):
-        tokens = convert_to_tokens(sequence.split(), self.gloss_vocab)
+        tokens = convert_to_tokens(sequence.lower(), self.gloss_vocab, DEVICE)
         num_tokens = tokens.shape[0]
         mask = torch.zeros(num_tokens, num_tokens).type(torch.bool).to(DEVICE)
         

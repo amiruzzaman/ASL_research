@@ -15,8 +15,8 @@ import torch.optim.lr_scheduler as lr_scheduler
 from tqdm import tqdm 
 
 from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
-from ml.tools.utils import create_mask
-from ml.tools.utils import generate_square_subsequent_mask
+from ml.utils.transformer import create_mask
+from ml.utils.transformer import generate_square_subsequent_mask
 
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -56,7 +56,7 @@ def validate(model, data, criterion, gloss_to_id):
     for glosses, landmarks in tqdm(data, desc= "Evaluating"):
         landmarks = landmarks.to(DEVICE)
         ids = torch.tensor([gloss_to_id[gloss] for gloss in glosses]).to(DEVICE)
-        
+
         out = model(landmarks, device=DEVICE)
 
         loss = criterion(out, ids)

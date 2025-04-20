@@ -5,7 +5,7 @@ model = EnglishToGloss()
 
 while True:
     print("Enter Sentence to translate to ASL Gloss:")
-    sentence = input().lower()
+    sentence = input()
+    translated = model.translate(sentence)
 
-    print(model.translate(sentence))
-    print()
+    print(f"{model.translate(sentence)}\n")
