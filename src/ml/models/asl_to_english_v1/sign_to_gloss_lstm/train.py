@@ -9,13 +9,10 @@ import torch.optim as optim
 
 from tqdm import tqdm
 
-<<<<<<<< HEAD:src/ml/models/asl_to_english_v1/sign_to_gloss/train.py
 from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
-========
-from ml.models.asl_to_english_v1.sign_to_gloss_lstm.model import SignToGlossModel
 from ml.utils.transformer import create_mask
 from ml.utils.transformer import generate_square_subsequent_mask
->>>>>>>> d454900 (Added VideoDataloader):ml/models/asl_to_english_v1/sign_to_gloss_lstm/train.py
+
 
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

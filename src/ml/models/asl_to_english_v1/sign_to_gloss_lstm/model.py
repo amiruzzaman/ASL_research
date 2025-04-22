@@ -1,6 +1,5 @@
 import torch.nn as nn
 
-
 class SignToGlossModel(nn.Module):
     def __init__(self, input_size, output_size, hidden_size, device, layers=2):
         super(SignToGlossModel, self).__init__()
@@ -22,4 +21,3 @@ class SignToGlossModel(nn.Module):
     def forward(self, x, device, h=None, c=None):
         out, _ = self.lstm(x)
         return self.ff(out[:, -1, :])
-
