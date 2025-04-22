@@ -3,7 +3,7 @@ import torch
 from ml.dataloaders.alsg_dataloader import load_alsg_dataset
 from ml.dataloaders.sign_dataloader import load_sign_dataset
 from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
-from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
+from ml.models.asl_to_english_v1.sign_to_gloss_lstm.model import SignToGlossModel
 from ml.utils.transformer import convert_to_tokens
 
 PATH = os.path.join("ml", "saved_models")
