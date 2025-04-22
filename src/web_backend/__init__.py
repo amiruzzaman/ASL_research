@@ -8,9 +8,14 @@ from mediapipe.tasks.python import vision
 
 from os import environ
 from pathlib import Path
-from unicodedata import normalize
+
+from ml.api.english_to_gloss import EnglishToGloss
+from ml.api.asl_to_english import ASLToEnglish
 
 HolisticLandmarker = vision.HolisticLandmarker
+
+english_to_gloss = EnglishToGloss()
+asl_to_english = ASLToEnglish()
 
 load_dotenv()
 
@@ -97,8 +102,7 @@ def rt_mark():
 @app.route("/api/gloss", methods=["POST"])
 def rt_gloss():
     sentence = request.data.decode()
-    # TODO: Integrate Alex's stuff here to get gloss terms from english
-    words = normalize("NFD", sentence.lower()).split()
+    words = english_to_gloss.translate(sentence)
     return Response(msgpack.packb(words), mimetype="application/x-msgpack")
 
 

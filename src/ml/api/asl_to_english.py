@@ -6,7 +6,14 @@ from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
 from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
 from ml.utils.transformer import convert_to_tokens
 
-PATH = os.path.join("ml", "saved_models")
+S2G_MODEL_PATH = os.getenv(
+    "SIGN_TO_ENGLISH_MODEL_PATH", "./src/ml/saved_models/sign_to_gloss/best.pt"
+)
+
+G2E_MODEL_PATH = os.getenv(
+    "GLOSS_TO_ENGLISH_MODEL_PATH", "./src/ml/saved_models/gloss_to_english/best.pt"
+)
+
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -18,9 +25,7 @@ class ASLToEnglish:
 
         # Creating Sign to Gloss model
         self.sign_to_gloss = SignToGlossModel(225, self.num_classes, 512, device=DEVICE)
-        s2g_weights = torch.load(
-            os.path.join(PATH, "sign_to_gloss", "best.pt"), weights_only=False
-        )
+        s2g_weights = torch.load(S2G_MODEL_PATH, weights_only=False)
         self.sign_to_gloss.load_state_dict(s2g_weights["model_state_dict"])
 
         # Creating Gloss To English model
@@ -34,9 +39,7 @@ class ASLToEnglish:
             0.3,
             device=DEVICE,
         )
-        g2e_weights = torch.load(
-            os.path.join(PATH, "gloss_to_english", "best.pt"), weights_only=False
-        )
+        g2e_weights = torch.load(G2E_MODEL_PATH, weights_only=False)
         self.gloss_to_english.load_state_dict(g2e_weights["model_state_dict"])
 
         # Set both models to evaluation mode
