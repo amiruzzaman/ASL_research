@@ -10,12 +10,12 @@ from os import environ
 from pathlib import Path
 
 from ml.api.english_to_gloss import EnglishToGloss
-from ml.api.asl_to_english import ASLToEnglish
+# from ml.api.asl_to_english import ASLToEnglish
 
 HolisticLandmarker = vision.HolisticLandmarker
 
 english_to_gloss = EnglishToGloss()
-asl_to_english = ASLToEnglish()
+# asl_to_english = ASLToEnglish()
 
 load_dotenv()
 

@@ -25,7 +25,9 @@ class ASLToEnglish:
 
         # Creating Sign to Gloss model
         self.sign_to_gloss = SignToGlossModel(225, self.num_classes, 512, device=DEVICE)
-        s2g_weights = torch.load(S2G_MODEL_PATH, weights_only=False)
+        s2g_weights = torch.load(
+            S2G_MODEL_PATH, weights_only=False, map_location=DEVICE
+        )
         self.sign_to_gloss.load_state_dict(s2g_weights["model_state_dict"])
 
         # Creating Gloss To English model
@@ -39,7 +41,9 @@ class ASLToEnglish:
             0.3,
             device=DEVICE,
         )
-        g2e_weights = torch.load(G2E_MODEL_PATH, weights_only=False)
+        g2e_weights = torch.load(
+            G2E_MODEL_PATH, weights_only=False, map_location=DEVICE
+        )
         self.gloss_to_english.load_state_dict(g2e_weights["model_state_dict"])
 
         # Set both models to evaluation mode

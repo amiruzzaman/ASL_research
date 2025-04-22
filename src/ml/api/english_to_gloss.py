@@ -25,7 +25,7 @@ class EnglishToGloss:
             0.3,
             device=DEVICE,
         )
-        weights = torch.load(MODEL_PATH, weights_only=False)
+        weights = torch.load(MODEL_PATH, weights_only=False, map_location=DEVICE)
         self.model.load_state_dict(weights["model_state_dict"])
 
         self.model.eval()
@@ -47,4 +47,4 @@ class EnglishToGloss:
             filter(lambda word: word not in self.invalid_words, translated)
         )
 
-        return translated
+        return translated[1:-1]
