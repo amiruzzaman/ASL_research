@@ -1,18 +1,17 @@
-from collections import defaultdict
 from typing import Counter
 import torch
-import numpy
 from datasets import load_dataset
 from datasets import enable_progress_bars
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 from sklearn.model_selection import train_test_split
-import torch.nn.functional as F
-import spacy
 from tqdm import tqdm
 
+
 class ASLDataset(Dataset):
-    def __init__(self, src_set, trg_set, src_vocab, trg_vocab, src_filters=[], trg_filters=[]):
+    def __init__(
+        self, src_set, trg_set, src_vocab, trg_vocab, src_filters=[], trg_filters=[]
+    ):
         """
         Custom dataset class for the ASLG-PC12 dataset
 
@@ -26,7 +25,7 @@ class ASLDataset(Dataset):
             gloss_filters: A list that contains certain words to get rid of in the glosses
             text_filters: A list that contains certain words to get rid of in the texts
         """
-        
+
         self.src_set = src_set
         self.trg_set = trg_set
 
@@ -34,12 +33,11 @@ class ASLDataset(Dataset):
         self.trg_vocab = trg_vocab
 
         self.src_filters = src_filters
-        self.trg_filters = trg_filters    
-
+        self.trg_filters = trg_filters
 
     def __len__(self):
         return len(self.src_set)
-    
+
     def __getitem__(self, index):
         """
         For a sample in the dictionary, we retrieve the random ASL gloss and English sentence in string form
@@ -48,9 +46,9 @@ class ASLDataset(Dataset):
 
         Parameters:
             index: The location of the sample in the batch
-        
+
         Returns:
-            Two sequence of tokens for the glosses and sentences with an <SOS> token added to the start 
+            Two sequence of tokens for the glosses and sentences with an <SOS> token added to the start
             and an <EOS> token added to the end.
         """
         src = self.src_set[index]
@@ -66,14 +64,15 @@ class ASLDataset(Dataset):
         # Split sentence of ASL gloss and English text to a list of words (Adds the SOS and EOS also)
         src_words = ["<sos>"] + src.split() + ["<eos>"]
         trg_words = ["<sos>"] + trg.split() + ["<eos>"]
-            
+
         # Convert those list of words to tokens/indices in the vocab
         src_tokens = torch.tensor([self.src_vocab[word] for word in src_words])
         trg_tokens = torch.tensor([self.trg_vocab[word] for word in trg_words])
-        
+
         return src_tokens, trg_tokens
 
-def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"], filters = []):
+
+def build_vocab(dataset, special=["<sos>", "<eos>", "<pad>", "<unk>"], filters=[]):
     """
     Builds the vocabulary for a dataset by splitting each sentence by their words and then
     Create two dictionaries, id_to_word and word_to_id.
@@ -92,7 +91,7 @@ def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"], filters
     for sentence in tqdm(dataset):
         for filter in filters:
             sentence = sentence.replace(filter, "")
-        
+
         count.update(sentence.split())
 
     # Sort the words based on how many times it appears in the dataset (Largest to smallest)
@@ -102,36 +101,39 @@ def build_vocab(dataset, special = ["<sos>", "<eos>", "<pad>", "<unk>"], filters
     vocab = special + words
 
     # Pairs word with their index in the vocab list (and vice versa)
-    word_to_id = {word:id for id, word in enumerate(vocab)}
-    id_to_word = {id:word for id, word in enumerate(vocab)}
+    word_to_id = {word: id for id, word in enumerate(vocab)}
+    id_to_word = {id: word for id, word in enumerate(vocab)}
 
     return word_to_id, id_to_word
+
 
 # Processes the list of samples in the batch so that all sample sentences are the same length
 def collate_fn(batch):
     """
     Processes the list of samples in the batch so that all sample sentences are the same length.
 
-    Parameter: 
+    Parameter:
         batch: A batch in the dataloader
-    
+
     Returns:
-        The batch with both sequences padded 
+        The batch with both sequences padded
     """
     x, y = zip(*batch)
     x = [torch.tensor(val) for val in x]
     y = [torch.tensor(val) for val in y]
-    
-    return pad_sequence(x, batch_first=True, padding_value=2), pad_sequence(y, batch_first=True, padding_value=2)
+
+    return pad_sequence(x, batch_first=True, padding_value=2), pad_sequence(
+        y, batch_first=True, padding_value=2
+    )
 
 
-def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse = False):
+def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse=False):
     """
     Loads the ASLG-PC12 Dataset and creates a Dataloader for it.
-    
+
     Parameters:
         batch_size: How many items each batch will contain
-        random_state: Controls the shuffling applied on the data during splitting.  
+        random_state: Controls the shuffling applied on the data during splitting.
         test_size: The proportion of the dataset to include in the test dataset
 
     Returns:
@@ -142,8 +144,10 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse = Fa
 
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
-    aslg_dataset = load_dataset("achrafothman/aslg_pc12", split='train')
-    glosses, texts = zip(*[(pair["gloss"].strip(), pair["text"].strip()) for pair in aslg_dataset])
+    aslg_dataset = load_dataset("achrafothman/aslg_pc12", split="train")
+    glosses, texts = zip(
+        *[(pair["gloss"].strip(), pair["text"].strip()) for pair in aslg_dataset]
+    )
 
     glosses = list(map(lambda x: x.lower(), glosses))
     texts = list(map(lambda x: x.lower(), texts))
@@ -153,20 +157,34 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse = Fa
     text_vocab, text_id = build_vocab(texts)
 
     # Split data into a training and validation set
-    gloss_train, gloss_test, english_train, english_test = train_test_split(glosses, texts, random_state=29, test_size=test_size, shuffle=True)
-        
+    gloss_train, gloss_test, english_train, english_test = train_test_split(
+        glosses, texts, random_state=29, test_size=test_size, shuffle=True
+    )
+
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
     train_dataset, test_dataset = None, None
 
     if not reverse:
-        train_dataset = ASLDataset(gloss_train, english_train, gloss_vocab, text_vocab, src_filters=filters)
-        test_dataset = ASLDataset(gloss_test, english_test, gloss_vocab, text_vocab, src_filters=filters)
+        train_dataset = ASLDataset(
+            gloss_train, english_train, gloss_vocab, text_vocab, src_filters=filters
+        )
+        test_dataset = ASLDataset(
+            gloss_test, english_test, gloss_vocab, text_vocab, src_filters=filters
+        )
     else:
-        train_dataset = ASLDataset(english_train, gloss_train, text_vocab, gloss_vocab, trg_filters=filters)
-        test_dataset = ASLDataset(english_test, gloss_test, text_vocab, gloss_vocab, trg_filters=filters)
+        train_dataset = ASLDataset(
+            english_train, gloss_train, text_vocab, gloss_vocab, trg_filters=filters
+        )
+        test_dataset = ASLDataset(
+            english_test, gloss_test, text_vocab, gloss_vocab, trg_filters=filters
+        )
 
-    train_dl = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
-    test_dl = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
+    train_dl = DataLoader(
+        train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
+    )
+    test_dl = DataLoader(
+        test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
+    )
 
     return train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id
