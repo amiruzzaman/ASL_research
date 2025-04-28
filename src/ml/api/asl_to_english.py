@@ -7,11 +7,11 @@ from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
 from ml.utils.transformer import convert_to_tokens
 
 S2G_MODEL_PATH = os.getenv(
-    "SIGN_TO_ENGLISH_MODEL_PATH", "./src/ml/saved_models/sign_to_gloss/best.pt"
+    "SIGN_2_GLOSS_MODEL_PATH", "./src/ml/saved_models/sign_to_gloss/best.pt"
 )
 
 G2E_MODEL_PATH = os.getenv(
-    "GLOSS_TO_ENGLISH_MODEL_PATH", "./src/ml/saved_models/gloss_to_english/best.pt"
+    "GLOSS_2_ENGLISH_MODEL_PATH", "./src/ml/saved_models/gloss_to_english/best.pt"
 )
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

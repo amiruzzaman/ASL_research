@@ -20,6 +20,21 @@ in {
       '';
     };
 
+    models = {
+      englishToGloss = lib.mkOption {
+        type = lib.types.path;
+        description = "Path to the .pt file containing the PyTorch model for converting English to ASL Gloss.";
+      };
+      glossToEnglish = lib.mkOption {
+        type = lib.types.path;
+        description = "Path to the .pt file containing the PyTorch model for converting ASL Gloss to English";
+      };
+      aslToGloss = lib.mkOption {
+        type = lib.types.path;
+        description = "Path to the .pt file containing the PyTorch model for converting ASL to ASL Gloss";
+      };
+    };
+
     address = lib.mkOption {
       default = "127.0.0.1";
       type = lib.types.str;
@@ -65,9 +80,23 @@ in {
       description = "ASL Web API";
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
-      serviceConfig.ExecStart = ''
-        ${lib.getExe pkgs.backend} -e WORD_LIBRARY_LOCATION=${cfg.wordDir} --bind ${cfg.address}:${builtins.toString cfg.port} ${lib.concatStringsSep " " cfg.extraArgs}
+      environment = {
+        WORD_LIBRARY_LOCATION = cfg.wordDir;
+        ENGLISH_2_GLOSS_MODEL_PATH = cfg.models.englishToGloss;
+        GLOSS_2_ENGLISH_MODEL_PATH = cfg.models.glossToEnglish;
+        SIGN_2_GLOSS_MODEL_PATH = cfg.models.aslToGloss;
+      };
+      script = ''
+        ${lib.getExe pkgs.backend} --bind ${cfg.address}:${builtins.toString cfg.port} ${lib.concatStringsSep " " cfg.extraArgs}
       '';
+      serviceConfig = {
+        Restart = "always";
+        RestartSec = "5s";
+        # User = "asl-site";
+        # Group = "asl-site";
+        # StateDirectory = "asl-site";
+        # DynamicUser = true;
+      };
     };
 
     networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [cfg.port];

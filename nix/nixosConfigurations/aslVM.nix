@@ -52,9 +52,15 @@ in {
         virtualisation = {
           graphics = false;
           diskImage = null;
-          sharedDirectories.words = {
-            source = "\${WORD_DIR:-$PROJ_ROOT/words}";
-            target = "/word-mnt";
+          sharedDirectories = {
+            words = {
+              source = "\${WORD_DIR:-$PROJ_ROOT/words}";
+              target = "/word-mnt";
+            };
+            models = {
+              source = "\${MODELS_DIR:-$PROJ_ROOT/saved_models}";
+              target = "/models-mnt";
+            };
           };
           forwardPorts = [
             {
@@ -72,9 +78,7 @@ in {
 
         users = {
           mutableUsers = false;
-          users."root" = {
-            hashedPassword = "$y$j9T$sfyYVDmioHNdul1/euqAQ1$JFPf2l70Nw.rfH2ku7kr5oHZebJoRm9UDiWX4g3v7k9";
-          };
+          users."root".hashedPassword = "$y$j9T$sfyYVDmioHNdul1/euqAQ1$JFPf2l70Nw.rfH2ku7kr5oHZebJoRm9UDiWX4g3v7k9";
         };
 
         system.stateVersion = "25.05";
@@ -83,6 +87,11 @@ in {
         services.aslSite = {
           enable = true;
           wordDir = "/word-mnt";
+          models = {
+            englishToGloss = "/models-mnt/english_to_gloss.pt";
+            glossToEnglish = "/models-mnt/gloss_to_english.pt";
+            aslToGloss = "/models-mnt/asl_to_gloss.pt";
+          };
         };
 
         networking.firewall.allowedTCPPorts = [8080 8443];

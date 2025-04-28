@@ -96,7 +96,7 @@ def rt_mark():
         frames = process_frames(cap, fps)
         return Response(frames, mimetype="application/x-msgpack")
     else:
-        return Response("Expected `video/webm` video!"), 415
+        return Response("Expected WEBM or MP4 video!"), 415
 
 
 @app.route("/api/gloss", methods=["POST"])
@@ -108,14 +108,14 @@ def rt_gloss():
 
 @app.route("/api/a2e", methods=["POST"])
 def rt_a2e():
-    if request.content_type == "video/webm":
+    ext = VIDEO_TYPES.get(request.content_type)
+    if ext is not None:
         stream = request.data
-        _cap = iio.imiter(stream, plugin="pyav", extension=".webm")
-        # TODO: Integrate Alex's stuff here to convert video to english
-        words = msgpack.packb(["hello", "how", "are", "you"])
-        return Response(words, mimetype="application/x-msgpack")
+        _cap = iio.imiter(stream, plugin="pyav", extension=ext)
+        words = ["hello"]
+        return Response(msgpack.packb(words), mimetype="application/x-msgpack")
     else:
-        return Response("Expected `video/webm` video!"), 415
+        return Response("Expected WEBM or MP4 video!"), 415
 
 
 @app.route("/api/word/<string:word>", methods=["GET"])
