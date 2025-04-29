@@ -61,20 +61,22 @@ class ASLToEnglish:
     def translate(self, signs):
         glosses = self.translate_signs(signs)
         sentence = self.translate_glosses(glosses)
-            
+
         return sentence
 
     def translate_signs(self, signs):
         sequence = []
         for buf in signs:
-            sequence.append(self.convert_to_features(buf))
+            sign = self.convert_to_features(buf)
+            if sign:
+                sequence.append(sign)
         
         sequence = torch.cat(sequence, dim=0)
         sequence_length, _, _ = sequence.shape
         sequence = sequence.to(DEVICE)
         id = torch.argmax(self.sign_to_gloss(sequence, device=DEVICE), dim=-1)
 
-        return " ".join([self.to_gloss[id[i].item()] for i in range(sequence_length)])
+        return [self.to_gloss[id[i].item()] for i in range(sequence_length)]
 
     def translate_sign(self, buf):
         features = []
@@ -107,6 +109,10 @@ class ASLToEnglish:
     
     def convert_to_features(self, buf):
         features = []
+
+        if len(buf) != 30:
+            return None
+        
         for frame in buf:
             results = self.holistic_model.process(buf)
             landmarks = get_feature(results)

@@ -118,11 +118,11 @@ def rt_a2e():
         for frame in cap:
             buf.append(frame)
             if len(buf) == 30:
-                id, word = asl_to_english.translate_sign(torch.tensor(buf))
+                # id, word = asl_to_english.translate_sign(buf)
                 sequence.append(buf)
                 buf = []
 
-        words = asl_to_english.translate(torch.tensor(sequence))
+        words = asl_to_english.translate(sequence)
         return Response(msgpack.packb(words), mimetype="application/x-msgpack")
     else:
         return Response("Expected WEBM or MP4 video!"), 415
