@@ -7,6 +7,7 @@ from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
 from ml.utils.landmarks import get_feature
 from ml.utils.transformer import convert_to_tokens
 import mediapipe as mp
+import numpy as np
 
 S2G_MODEL_PATH = os.getenv(
     "SIGN_2_GLOSS_MODEL_PATH", "./src/ml/saved_models/sign_to_gloss/best.pt"
@@ -114,7 +115,7 @@ class ASLToEnglish:
             return None
         
         for frame in buf:
-            results = self.holistic_model.process(buf)
+            results = self.holistic_model.process(np.array(frame))
             landmarks = get_feature(results)
             features.append(landmarks)
         
