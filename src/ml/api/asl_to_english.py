@@ -62,9 +62,9 @@ class ASLToEnglish:
 
     def translate(self, signs):
         glosses = self.translate_signs(signs)
-        sentence = self.translate_glosses(glosses)
+        # sentence = self.translate_glosses(glosses)
 
-        return sentence
+        return glosses
 
     def translate_signs(self, signs):
         sequence = []
@@ -74,7 +74,6 @@ class ASLToEnglish:
                 sequence.append(sign)
 
         sequence = torch.stack(sequence, dim=0)
-        print(sequence.shape)
         sequence_length, _, _ = sequence.shape
         sequence = sequence.to(DEVICE)
         id = torch.argmax(self.sign_to_gloss(sequence, device=DEVICE), dim=-1)
@@ -82,12 +81,10 @@ class ASLToEnglish:
         return [self.to_gloss[id[i].item()] for i in range(sequence_length)]
 
     def translate_sign(self, buf):
-        features = []
-
         if len(buf) != 30:
             return
 
-        sequence = self.convert_to_features(features)
+        sequence = self.convert_to_features(buf)
 
         sequence_length, _ = sequence.shape
         sequence = sequence.unsqueeze(dim=0).to(DEVICE)
@@ -122,5 +119,4 @@ class ASLToEnglish:
             features.append(landmarks)
 
         sequence = torch.stack(features, dim=0)
-        print(sequence.shape)
         return sequence

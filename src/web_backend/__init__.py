@@ -121,7 +121,7 @@ def rt_a2e():
                 # id, word = asl_to_english.translate_sign(buf)
                 sequence.append(buf)
                 buf = []
-
+            
         words = asl_to_english.translate(sequence)
         return Response(msgpack.packb(words), mimetype="application/x-msgpack")
     else:
