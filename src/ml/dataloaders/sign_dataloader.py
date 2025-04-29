@@ -25,7 +25,7 @@ def load_sign_dataset(batch_size=1, random_state=29, test_size=0.1):
     labels = list(
         filter(
             lambda file: os.path.isdir(os.path.join(DATA_PATH, file)),
-            os.listdir(DATA_PATH),
+            sorted(os.listdir(DATA_PATH)),
         )
     )
     glosses = []
