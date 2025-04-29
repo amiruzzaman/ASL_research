@@ -121,7 +121,7 @@ def rt_a2e():
                 sequence.append(buf)
                 buf = []
 
-        words = asl_to_english.translate(sequence)
+        words = asl_to_english.translate(sequence[1:])
         return Response(msgpack.packb(words), mimetype="application/x-msgpack")
     else:
         return Response("Expected WEBM or MP4 video!"), 415

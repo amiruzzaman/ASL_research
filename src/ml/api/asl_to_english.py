@@ -77,6 +77,8 @@ class ASLToEnglish:
         sequence = sequence.to(DEVICE)
         id = torch.argmax(self.sign_to_gloss(sequence, device=DEVICE), dim=-1)
 
+        print(self.to_gloss)
+
         return [self.to_gloss[id[i].item()] for i in range(sequence_length)]
 
     def translate_sign(self, buf):
