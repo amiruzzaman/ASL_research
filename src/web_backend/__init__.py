@@ -4,6 +4,7 @@ import imageio as iio
 from dotenv import load_dotenv
 from flask import Flask, request, Response
 import mediapipe as mp
+import torch
 from mediapipe.tasks.python import vision
 
 from os import environ
@@ -117,11 +118,11 @@ def rt_a2e():
         for frame in cap:
             buf.append(frame)
             if len(buf) == 30:
-                id, word = asl_to_english.translate_sign(buf)
+                id, word = asl_to_english.translate_sign(torch.tensor(buf))
                 sequence.append(buf)
                 buf = []
 
-        words = asl_to_english.translate(sequence)
+        words = asl_to_english.translate(torch.tensor(sequence))
         return Response(msgpack.packb(words), mimetype="application/x-msgpack")
     else:
         return Response("Expected WEBM or MP4 video!"), 415

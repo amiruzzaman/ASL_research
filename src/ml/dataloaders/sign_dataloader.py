@@ -4,7 +4,8 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-DATA_PATH = os.path.join("ml", "data", "processed", "signs")
+
+DATA_PATH = os.getenv("ASL_TO_GLOSS_SIGNS_DIR", "src/ml/data/processed/signs")
 
 
 class SignToVideoDataset(Dataset):
