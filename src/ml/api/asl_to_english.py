@@ -69,7 +69,7 @@ class ASLToEnglish:
         sequence = []
         for buf in signs:
             sign = self.convert_to_features(buf)
-            if sign:
+            if sign is not None:
                 sequence.append(sign)
         
         sequence = torch.cat(sequence, dim=0)
