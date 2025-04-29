@@ -33,7 +33,7 @@ def load_sign_dataset(batch_size=1, random_state=29, test_size=0.1):
 
     for label in labels:
         folder = os.path.join(DATA_PATH, label)
-        for sample in os.listdir(folder):
+        for sample in sorted(os.listdir(folder)):
             file_path = os.path.join(folder, sample)
 
             if not os.path.isfile(file_path):
