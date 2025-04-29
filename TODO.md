@@ -15,8 +15,10 @@
 - [x] Home Page
 - [x] Directions for Record
 - [x] Allow saving new words on the backend
-- [ ] SSL Stuff
+- [x] SSL Stuff
 - [x] License - AGPLv3
 - [x] Citation for Repo
 - [ ] Fill out citation document more
 - [ ] Video browser + add term to system
+- [ ] Integrate new gloss terms into dataset
+- [ ] 3D view rotation? Armature/IK tweening

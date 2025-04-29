@@ -61,6 +61,10 @@ in {
               source = "\${MODELS_DIR:-$PROJ_ROOT/saved_models}";
               target = "/models-mnt";
             };
+            cert = {
+              source = "\${CERTS_DIR:-$PROJ_ROOT/certs}";
+              target = "/certs-mnt";
+            };
           };
           forwardPorts = [
             {
@@ -99,6 +103,9 @@ in {
         services.nginx = {
           enable = true;
           recommendedOptimisation = true;
+          recommendedTlsSettings = true;
+          defaultHTTPListenPort = 8080;
+          defaultSSLListenPort = 8443;
           # recommendedBrotliSettings doesn't include application/x-msgpack
           # and sadly doesn't expose compressMimeTypes, so we'll set what it
           # does manually
@@ -113,17 +120,10 @@ in {
             brotli_types ${lib.concatStringsSep " " compressMimeTypes};
           '';
           virtualHosts.aslResearch = {
-            listen = [
-              {
-                addr = "0.0.0.0";
-                port = 8080;
-              }
-              {
-                addr = "0.0.0.0";
-                port = 8443;
-              }
-            ];
             default = true;
+            onlySSL = true;
+            sslCertificate = "/certs-mnt/host.cert";
+            sslCertificateKey = "/certs-mnt/host.key";
             root = "${pkgs.frontend}";
             locations."/api" = {
               recommendedProxySettings = true;

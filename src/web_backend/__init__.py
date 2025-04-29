@@ -10,12 +10,12 @@ from os import environ
 from pathlib import Path
 
 from ml.api.english_to_gloss import EnglishToGloss
-# from ml.api.asl_to_english import ASLToEnglish
+from ml.api.asl_to_english import ASLToEnglish
 
 HolisticLandmarker = vision.HolisticLandmarker
 
 english_to_gloss = EnglishToGloss()
-# asl_to_english = ASLToEnglish()
+asl_to_english = ASLToEnglish()
 
 load_dotenv()
 
@@ -111,8 +111,17 @@ def rt_a2e():
     ext = VIDEO_TYPES.get(request.content_type)
     if ext is not None:
         stream = request.data
-        _cap = iio.imiter(stream, plugin="pyav", extension=ext)
-        words = ["hello"]
+        cap = iio.imiter(stream, plugin="pyav", extension=ext)
+        sequence = []
+        buf = []
+        for frame in cap:
+            buf.append(frame)
+            if len(buf) == 30:
+                id, word = asl_to_english.translate_sign(buf)
+                sequence.append(buf)
+                buf = []
+
+        words = asl_to_english.translate(sequence)
         return Response(msgpack.packb(words), mimetype="application/x-msgpack")
     else:
         return Response("Expected WEBM or MP4 video!"), 415
