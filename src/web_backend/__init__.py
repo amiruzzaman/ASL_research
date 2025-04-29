@@ -4,7 +4,6 @@ import imageio as iio
 from dotenv import load_dotenv
 from flask import Flask, request, Response
 import mediapipe as mp
-import torch
 from mediapipe.tasks.python import vision
 
 from os import environ
@@ -121,7 +120,7 @@ def rt_a2e():
                 # id, word = asl_to_english.translate_sign(buf)
                 sequence.append(buf)
                 buf = []
-            
+
         words = asl_to_english.translate(sequence)
         return Response(msgpack.packb(words), mimetype="application/x-msgpack")
     else:

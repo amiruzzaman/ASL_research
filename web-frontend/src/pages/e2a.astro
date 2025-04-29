@@ -134,7 +134,7 @@ import Pane from "../components/Pane.astro";
     if (!("webkitSpeechRecognition" in window)) {
       recordButton.style.display = "none";
     } else {
-      // @ts-ignore
+      // @ts-expect-error Checked Above
       const recognition = new webkitSpeechRecognition();
       recognition.lang = "en-US";
       let transcript = "";
@@ -143,7 +143,7 @@ import Pane from "../components/Pane.astro";
         resultIndex: number;
         results: { 0: { transcript: string }; isFinal: boolean }[];
       }) => {
-        for (var i = e.resultIndex; i < e.results.length; ++i) {
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
           if (e.results[i].isFinal) {
             transcript += e.results[i][0].transcript;
             console.debug(transcript);

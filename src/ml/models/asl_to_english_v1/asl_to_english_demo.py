@@ -5,8 +5,6 @@ import torch
 from ml.api.asl_to_english import ASLToEnglish
 
 
-from ml.utils.landmarks import get_feature, concatenate
-
 import os
 
 
@@ -56,6 +54,7 @@ def get_sign():
         cv.waitKey(10)
 
     return buf
+
 
 while is_running:
     sequence = []

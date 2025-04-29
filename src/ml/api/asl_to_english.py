@@ -7,7 +7,6 @@ from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
 from ml.utils.landmarks import get_feature
 from ml.utils.transformer import convert_to_tokens
 import mediapipe as mp
-import numpy as np
 
 S2G_MODEL_PATH = os.getenv(
     "SIGN_2_GLOSS_MODEL_PATH", "./src/ml/saved_models/sign_to_gloss/best.pt"
@@ -93,7 +92,7 @@ class ASLToEnglish:
         return id, self.to_gloss[id]
 
     def translate_glosses(self, sequence):
-        tokens = convert_to_tokens(' '.join(sequence).lower(), self.gloss_vocab, DEVICE)
+        tokens = convert_to_tokens(" ".join(sequence).lower(), self.gloss_vocab, DEVICE)
         num_tokens = tokens.shape[0]
         mask = torch.zeros(num_tokens, num_tokens).type(torch.bool).to(DEVICE)
 

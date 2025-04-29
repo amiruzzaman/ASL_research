@@ -1,5 +1,6 @@
 import torch
 
+
 def extract_landmarks(landmarks):
     return torch.tensor(
         [(landmark.x, landmark.y, landmark.z) for landmark in landmarks.landmark]
