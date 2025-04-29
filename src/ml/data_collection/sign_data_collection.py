@@ -3,7 +3,7 @@ import cv2 as cv
 import mediapipe as mp
 import os
 import torch
-from ml.tools.utils import get_feature
+from ml.utils.landmarks import get_feature
 
 # Path for exported data, numpy arrays
 DATA_PATH = os.path.join("ml", "data", "raw", "signs")

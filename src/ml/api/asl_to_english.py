@@ -115,7 +115,7 @@ class ASLToEnglish:
             return None
         
         for frame in buf:
-            results = self.holistic_model.process(np.array(frame))
+            results = self.holistic_model.process(frame)
             landmarks = get_feature(results)
             features.append(landmarks)
         
