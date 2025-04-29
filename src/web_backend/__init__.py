@@ -116,7 +116,7 @@ def rt_a2e():
         sequence = []
         buf = []
         for frame in cap:
-            buf.append(mp.Image(image_format=mp.ImageFormat.SRGB, data=frame))
+            buf.append(frame)
             if len(buf) == 30:
                 # id, word = asl_to_english.translate_sign(buf)
                 sequence.append(buf)

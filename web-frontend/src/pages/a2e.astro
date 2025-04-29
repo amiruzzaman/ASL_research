@@ -96,7 +96,8 @@ import Pane from "../components/Pane.astro";
       paneElem.setLoading(true);
 
       const words: string[] = await processVideo(rawData);
-      outputText.textContent = words.join(" ");
+      console.debug(words);
+      outputText.textContent = words;
       outputText.style.display = "";
       videoElem.style.display = "none";
       recordButton.innerText = "Restart";

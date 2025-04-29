@@ -22,6 +22,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 mp_holistic = mp.solutions.holistic
 mp_drawing = mp.solutions.drawing_utils
 
+
 class ASLToEnglish:
     def __init__(self):
         # Loading datasets
@@ -71,8 +72,9 @@ class ASLToEnglish:
             sign = self.convert_to_features(buf)
             if sign is not None:
                 sequence.append(sign)
-        
-        sequence = torch.cat(sequence, dim=0)
+
+        sequence = torch.stack(sequence, dim=0)
+        print(sequence.shape)
         sequence_length, _, _ = sequence.shape
         sequence = sequence.to(DEVICE)
         id = torch.argmax(self.sign_to_gloss(sequence, device=DEVICE), dim=-1)
@@ -93,8 +95,8 @@ class ASLToEnglish:
 
         return id, self.to_gloss[id]
 
-    def translate_glosses(self, sequence):        
-        tokens = convert_to_tokens(sequence.lower(), self.gloss_vocab, DEVICE)
+    def translate_glosses(self, sequence):
+        tokens = convert_to_tokens(' '.join(sequence).lower(), self.gloss_vocab, DEVICE)
         num_tokens = tokens.shape[0]
         mask = torch.zeros(num_tokens, num_tokens).type(torch.bool).to(DEVICE)
 
@@ -107,18 +109,18 @@ class ASLToEnglish:
             [self.to_text[token] for token in translated_tokens.tolist()][1:-1]
         )
         return translated
-    
+
     def convert_to_features(self, buf):
         features = []
 
         if len(buf) != 30:
             return None
-        
+
         for frame in buf:
             results = self.holistic_model.process(frame)
             landmarks = get_feature(results)
             features.append(landmarks)
-        
-        sequence = torch.cat(features, dim=0)
-        return sequence
 
+        sequence = torch.stack(features, dim=0)
+        print(sequence.shape)
+        return sequence

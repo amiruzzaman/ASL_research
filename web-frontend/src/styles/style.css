@@ -224,6 +224,7 @@ button.primary,
   border: solid 2px transparent;
   background-color: var(--bg);
   cursor: pointer;
+  font-size: var(--2);
   will-change: background-color;
   transition: background-color 100ms linear;
 }
