@@ -5,8 +5,6 @@ import torch
 from ml.api.asl_to_english import ASLToEnglish
 
 
-from ml.utils.landmarks import get_feature, concatenate
-
 import os
 
 
@@ -42,7 +40,7 @@ def draw_connections(image, results):
 
 
 def get_sign():
-    features = torch.empty(0)
+    buf = []
 
     for frame_num in range(sequence_length):
         ret, image = cap.read()
@@ -50,28 +48,23 @@ def get_sign():
         if not ret:
             break
 
-        # Get landmark data from the current image and
-        results = holistic_model.process(image)
-        landmarks = get_feature(results)
-        features = concatenate(features, landmarks)
+        buf.append(image)
 
-        # Draw the hand connections and show screen
-        draw_connections(image, results)
         cv.imshow("OpenCV Feed", image)
         cv.waitKey(10)
 
-    return features
+    return buf
 
 
 while is_running:
-    sequence = torch.empty(0)
+    sequence = []
 
     for i in range(5):
         sign = get_sign()
         ret, image = cap.read()
 
         # Adds the sign onto the sequence and translates it
-        sequence = concatenate(sequence, sign)
+        sequence.append(sign)
         id, word = model.translate_sign(sign)
 
         cv.putText(

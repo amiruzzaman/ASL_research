@@ -4,7 +4,8 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-DATA_PATH = os.path.join("ml", "data", "processed", "signs")
+
+DATA_PATH = os.getenv("ASL_2_GLOSS_SIGNS_DIR", "src/ml/data/processed/signs")
 
 
 class SignToVideoDataset(Dataset):
@@ -24,7 +25,7 @@ def load_sign_dataset(batch_size=1, random_state=29, test_size=0.1):
     labels = list(
         filter(
             lambda file: os.path.isdir(os.path.join(DATA_PATH, file)),
-            os.listdir(DATA_PATH),
+            sorted(os.listdir(DATA_PATH)),
         )
     )
     glosses = []
@@ -32,7 +33,7 @@ def load_sign_dataset(batch_size=1, random_state=29, test_size=0.1):
 
     for label in labels:
         folder = os.path.join(DATA_PATH, label)
-        for sample in os.listdir(folder):
+        for sample in sorted(os.listdir(folder)):
             file_path = os.path.join(folder, sample)
 
             if not os.path.isfile(file_path):

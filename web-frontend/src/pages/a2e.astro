@@ -117,9 +117,14 @@ import Pane from "../components/Pane.astro";
       videoElem.play();
 
       const onData = (e: MediaRecorderEventMap["dataavailable"]) => {
-        paneElem.setLoading(false);
-        if (e.data.size > 0) {
+        if (e.data.size > 0 && isRecording) {
           recordedData.push(e.data);
+          recorder.pause();
+          videoElem.pause();
+          setTimeout(() => {
+            recorder.resume();
+            videoElem.play();
+          }, 2000);
         }
 
         if (stopping && isRecording) {
@@ -137,8 +142,9 @@ import Pane from "../components/Pane.astro";
       recorder.addEventListener("dataavailable", onData);
       recorder.addEventListener("stop", onStopped);
       isRecording = true;
+      paneElem.setLoading(false);
 
-      recorder.start(500);
+      recorder.start(1000);
     };
 
     recordButton.onclick = () => {
@@ -155,7 +161,7 @@ import Pane from "../components/Pane.astro";
           streamOpened(recordStream);
         } else {
           navigator.mediaDevices
-            .getUserMedia({ audio: false, video: { frameRate: { ideal: 30, max: 60 } } })
+            .getUserMedia({ audio: false, video: { frameRate: { ideal: 30, max: 30 } } })
             .then(streamOpened);
         }
       }

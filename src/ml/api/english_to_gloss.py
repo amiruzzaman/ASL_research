@@ -5,7 +5,10 @@ from ml.dataloaders.alsg_dataloader import load_alsg_dataset
 from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
 from ml.utils.transformer import convert_to_tokens
 
-PATH = os.path.join("ml", "saved_models")
+MODEL_PATH = os.getenv(
+    "ENGLISH_2_GLOSS_MODEL_PATH", "./src/ml/saved_models/english_to_gloss/best.pt"
+)
+
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -22,13 +25,11 @@ class EnglishToGloss:
             0.3,
             device=DEVICE,
         )
-        weights = torch.load(
-            os.path.join(PATH, "english_to_gloss", "best.pt"), weights_only=False
-        )
+        weights = torch.load(MODEL_PATH, weights_only=False, map_location=DEVICE)
         self.model.load_state_dict(weights["model_state_dict"])
 
         self.model.eval()
-        self.invalid_words = set(["be", "in", "to"])
+        self.invalid_words = {"be", "in", "to"}
 
     def translate(self, sequence):
         # Turns the string input into a tensor containing tokens
@@ -46,4 +47,4 @@ class EnglishToGloss:
             filter(lambda word: word not in self.invalid_words, translated)
         )
 
-        return " ".join(translated[1:-1]).upper()
+        return translated[1:-1]

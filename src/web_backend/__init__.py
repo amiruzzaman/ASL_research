@@ -8,9 +8,14 @@ from mediapipe.tasks.python import vision
 
 from os import environ
 from pathlib import Path
-from unicodedata import normalize
+
+from ml.api.english_to_gloss import EnglishToGloss
+from ml.api.asl_to_english import ASLToEnglish
 
 HolisticLandmarker = vision.HolisticLandmarker
+
+english_to_gloss = EnglishToGloss()
+asl_to_english = ASLToEnglish()
 
 load_dotenv()
 
@@ -91,27 +96,35 @@ def rt_mark():
         frames = process_frames(cap, fps)
         return Response(frames, mimetype="application/x-msgpack")
     else:
-        return Response("Expected `video/webm` video!"), 415
+        return Response("Expected WEBM or MP4 video!"), 415
 
 
 @app.route("/api/gloss", methods=["POST"])
 def rt_gloss():
     sentence = request.data.decode()
-    # TODO: Integrate Alex's stuff here to get gloss terms from english
-    words = normalize("NFD", sentence.lower()).split()
+    words = english_to_gloss.translate(sentence)
     return Response(msgpack.packb(words), mimetype="application/x-msgpack")
 
 
 @app.route("/api/a2e", methods=["POST"])
 def rt_a2e():
-    if request.content_type == "video/webm":
+    ext = VIDEO_TYPES.get(request.content_type)
+    if ext is not None:
         stream = request.data
-        _cap = iio.imiter(stream, plugin="pyav", extension=".webm")
-        # TODO: Integrate Alex's stuff here to convert video to english
-        words = msgpack.packb(["hello", "how", "are", "you"])
-        return Response(words, mimetype="application/x-msgpack")
+        cap = iio.imiter(stream, plugin="pyav", extension=ext)
+        sequence = []
+        buf = []
+        for frame in cap:
+            buf.append(frame)
+            if len(buf) == 30:
+                # id, word = asl_to_english.translate_sign(buf)
+                sequence.append(buf)
+                buf = []
+
+        words = asl_to_english.translate(sequence[1:])
+        return Response(msgpack.packb(words), mimetype="application/x-msgpack")
     else:
-        return Response("Expected `video/webm` video!"), 415
+        return Response("Expected WEBM or MP4 video!"), 415
 
 
 @app.route("/api/word/<string:word>", methods=["GET"])

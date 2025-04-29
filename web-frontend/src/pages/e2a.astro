@@ -18,6 +18,7 @@ import Pane from "../components/Pane.astro";
       <ASLCanvas id="canvas" />
     </Pane>
     <div class="input-wrapper">
+      <button id="mic">Use Audio</button>
       <input
         id="user-input"
         aria-label="Enter English Sentence"
@@ -128,12 +129,48 @@ import Pane from "../components/Pane.astro";
     const wordList = document.getElementById("word-list")!;
     const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
     const pane = usePane(document.getElementById("pane")! as HTMLDivElement);
+    const recordButton = document.getElementById("mic")! as HTMLButtonElement;
+
+    if (!("webkitSpeechRecognition" in window)) {
+      recordButton.style.display = "none";
+    } else {
+      // @ts-expect-error Checked Above
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = "en-US";
+      let transcript = "";
+
+      recognition.onresult = (e: {
+        resultIndex: number;
+        results: { 0: { transcript: string }; isFinal: boolean }[];
+      }) => {
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) {
+            transcript += e.results[i][0].transcript;
+            console.debug(transcript);
+          }
+        }
+      };
+
+      recognition.onend = () => {
+        userInputBox.value = transcript;
+        transcript = "";
+        recordButton.innerText = "Use Audio";
+        recordButton.disabled = false;
+      };
+
+      recordButton.onclick = async () => {
+        recordButton.innerText = "Recording";
+        recordButton.disabled = true;
+        recognition.start();
+      };
+    }
 
     const ctx = prepareCanvas(canvas);
     submitButton.onclick = async () => {
       const input = userInputBox.value.trim();
       if (input.length === 0) return;
 
+      recordButton.style.display = "none";
       submitButton.style.display = "none";
       userInputBox.style.display = "none";
       pane.setLoading(true);

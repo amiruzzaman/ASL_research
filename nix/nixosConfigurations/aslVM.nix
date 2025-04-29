@@ -52,9 +52,19 @@ in {
         virtualisation = {
           graphics = false;
           diskImage = null;
-          sharedDirectories.words = {
-            source = "\${WORD_DIR:-$PROJ_ROOT/words}";
-            target = "/word-mnt";
+          sharedDirectories = {
+            words = {
+              source = "\${WORD_DIR:-$PROJ_ROOT/words}";
+              target = "/word-mnt";
+            };
+            models = {
+              source = "\${MODELS_DIR:-$PROJ_ROOT/saved_models}";
+              target = "/models-mnt";
+            };
+            cert = {
+              source = "\${CERTS_DIR:-$PROJ_ROOT/certs}";
+              target = "/certs-mnt";
+            };
           };
           forwardPorts = [
             {
@@ -72,9 +82,7 @@ in {
 
         users = {
           mutableUsers = false;
-          users."root" = {
-            hashedPassword = "$y$j9T$sfyYVDmioHNdul1/euqAQ1$JFPf2l70Nw.rfH2ku7kr5oHZebJoRm9UDiWX4g3v7k9";
-          };
+          users."root".hashedPassword = "$y$j9T$sfyYVDmioHNdul1/euqAQ1$JFPf2l70Nw.rfH2ku7kr5oHZebJoRm9UDiWX4g3v7k9";
         };
 
         system.stateVersion = "25.05";
@@ -83,6 +91,12 @@ in {
         services.aslSite = {
           enable = true;
           wordDir = "/word-mnt";
+          models = {
+            englishToGloss = "/models-mnt/english_to_gloss.pt";
+            glossToEnglish = "/models-mnt/gloss_to_english.pt";
+            aslToGloss = "/models-mnt/asl_to_gloss.pt";
+            aslSigns = "/models-mnt/signs";
+          };
         };
 
         networking.firewall.allowedTCPPorts = [8080 8443];
@@ -90,6 +104,9 @@ in {
         services.nginx = {
           enable = true;
           recommendedOptimisation = true;
+          recommendedTlsSettings = true;
+          defaultHTTPListenPort = 8080;
+          defaultSSLListenPort = 8443;
           # recommendedBrotliSettings doesn't include application/x-msgpack
           # and sadly doesn't expose compressMimeTypes, so we'll set what it
           # does manually
@@ -104,17 +121,10 @@ in {
             brotli_types ${lib.concatStringsSep " " compressMimeTypes};
           '';
           virtualHosts.aslResearch = {
-            listen = [
-              {
-                addr = "0.0.0.0";
-                port = 8080;
-              }
-              {
-                addr = "0.0.0.0";
-                port = 8443;
-              }
-            ];
             default = true;
+            onlySSL = true;
+            sslCertificate = "/certs-mnt/host.cert";
+            sslCertificateKey = "/certs-mnt/host.key";
             root = "${pkgs.frontend}";
             locations."/api" = {
               recommendedProxySettings = true;
