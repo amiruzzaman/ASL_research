@@ -96,7 +96,6 @@ import Pane from "../components/Pane.astro";
       paneElem.setLoading(true);
 
       const words: string[] = await processVideo(rawData);
-      console.debug(words);
       outputText.textContent = words.join(" ");
       outputText.style.display = "";
       videoElem.style.display = "none";
@@ -118,8 +117,14 @@ import Pane from "../components/Pane.astro";
       videoElem.play();
 
       const onData = (e: MediaRecorderEventMap["dataavailable"]) => {
-        if (e.data.size > 0) {
+        if (e.data.size > 0 && isRecording) {
           recordedData.push(e.data);
+          recorder.pause();
+          videoElem.pause();
+          setTimeout(() => {
+            recorder.resume();
+            videoElem.play();
+          }, 2000);
         }
 
         if (stopping && isRecording) {

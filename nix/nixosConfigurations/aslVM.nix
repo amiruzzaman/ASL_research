@@ -95,6 +95,7 @@ in {
             englishToGloss = "/models-mnt/english_to_gloss.pt";
             glossToEnglish = "/models-mnt/gloss_to_english.pt";
             aslToGloss = "/models-mnt/asl_to_gloss.pt";
+            aslSigns = "/models-mnt/signs";
           };
         };
 

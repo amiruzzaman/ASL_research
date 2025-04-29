@@ -172,6 +172,10 @@
 
 /* Element Defaults */
 
+body {
+  font-size: var(--3);
+}
+
 small {
   font-size: var(--small);
   color: var(--text-disabled);

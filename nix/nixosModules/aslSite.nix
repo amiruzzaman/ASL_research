@@ -33,6 +33,10 @@ in {
         type = lib.types.path;
         description = "Path to the .pt file containing the PyTorch model for converting ASL to ASL Gloss";
       };
+      aslSigns = lib.mkOption {
+        type = lib.types.path;
+        description = "Path to a folder of signs processed by the ASL processor for use in ASL to English";
+      };
     };
 
     address = lib.mkOption {
@@ -85,6 +89,7 @@ in {
         ENGLISH_2_GLOSS_MODEL_PATH = cfg.models.englishToGloss;
         GLOSS_2_ENGLISH_MODEL_PATH = cfg.models.glossToEnglish;
         SIGN_2_GLOSS_MODEL_PATH = cfg.models.aslToGloss;
+        ASL_2_GLOSS_SIGNS_DIR = cfg.models.aslSigns;
       };
       script = ''
         ${lib.getExe pkgs.backend} --bind ${cfg.address}:${builtins.toString cfg.port} ${lib.concatStringsSep " " cfg.extraArgs}
