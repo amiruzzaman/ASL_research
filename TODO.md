@@ -21,4 +21,7 @@
 - [ ] Fill out citation document more
 - [ ] Video browser + add term to system
 - [ ] Integrate new gloss terms into dataset
-- [ ] 3D view rotation? Armature/IK tweening
+- [ ] 3D view rotation?
+- [ ] Armature/IK tweening
+- [ ] SPA?
+- [ ] P2P translation

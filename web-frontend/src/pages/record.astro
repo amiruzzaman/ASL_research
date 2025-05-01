@@ -5,30 +5,37 @@ import Pane from "../components/Pane.astro";
 ---
 
 <Layout class="app" title="Record ASL Word/Phrase">
+  <div class="interface">
+    <div id="complete-section" style="display: none;">
+      <label>Word Name <input name="word-name" id="name-input" value="word" /></label>
+      <button id="create-word">Save To Library</button>
+      <a id="download-link" href="about:blank">Download Data</a>
+    </div>
+    <button data-recording="false" id="record">Start Recording</button>
+  </div>
   <Pane id="pane" startLoading>
     <video style="display: none;" id="video-output"></video>
     <ASLCanvas style="display: none;" id="canvas" />
   </Pane>
-  <div class="interface">
-    <div id="complete-section" style="display: none;">
-      <label>Word Name: <input name="word-name" id="name-input" value="word" /></label>
-      <div class="word-actions colrow-sm">
-        <a id="download-link" href="about:blank">Download Data</a>
-        <button id="create-word">Save To Library</button>
-      </div>
-    </div>
-    <button data-recording="false" id="record">Start Recording</button>
-  </div>
-  <p>
-    Record some ASL by clicking the "Start Recording" button above. After recording you'll be shown
-    a preview of your sign and have the option to save it to a local file. Place this file in the <code
-      >words</code
-    > directory to have it available in the <a href="/e2a">English to ASL</a> page.
-  </p>
+
+  <!-- <p> -->
+  <!--   Record some ASL by clicking the "Start Recording" button above. After recording you'll be shown -->
+  <!--   a preview of your sign and have the option to save it to a local file. Place this file in the <code -->
+  <!--     >words</code -->
+  <!--   > directory to have it available in the <a href="/e2a">English to ASL</a> page. -->
+  <!-- </p> -->
 </Layout>
 
 <style>
   label {
+    text-align: center;
+  }
+
+  #name-input {
+    margin-left: var(--1);
+  }
+
+  #download-link {
     text-align: center;
   }
 

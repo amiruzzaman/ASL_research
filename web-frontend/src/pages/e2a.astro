@@ -5,51 +5,68 @@ import Pane from "../components/Pane.astro";
 ---
 
 <Layout class="main" title="English to ASL">
+  <span
+    id="word-template"
+    data-active="false"
+    data-unknown="false"
+    style="display: none;"
+    class="word-chip"></span>
+  <!-- <p> -->
+  <!--   Translate English sentences to ASL signs. Enter the English sentence in the field above and -->
+  <!--   click "Play". The ASL animation will cycle through each word. If a word is unknown, it will be -->
+  <!--   marked red, and will be skipped. Words can be recorded for this page using the <a href="/record" -->
+  <!--     >Record ASL</a -->
+  <!--   > page. -->
+  <!-- </p> -->
   <div class="app">
-    <div id="word-list" class="word-list">
-      <span
-        id="word-template"
-        data-active="false"
-        data-unknown="false"
-        style="display: none;"
-        class="word-chip"></span>
-    </div>
-    <Pane id="pane" class="wrapper">
-      <ASLCanvas id="canvas" />
-    </Pane>
     <div class="input-wrapper">
-      <button id="mic">Use Audio</button>
       <input
         id="user-input"
         aria-label="Enter English Sentence"
         name="word-input"
         type="text"
-        placeholder="Hello"
+        placeholder="Enter an English Sentence"
       />
+      <button id="mic">🎤 Use Audio</button>
       <button disabled id="submit">Play</button>
     </div>
+    <div id="word-list" class="word-list">
+      <span class="word-placeholder">Gloss Will Appear Here</span>
+    </div>
+    <Pane id="pane" class="wrapper">
+      <ASLCanvas id="canvas" />
+    </Pane>
   </div>
-  <p>
-    Translate English sentences to ASL signs. Enter the English sentence in the field above and
-    click "Play". The ASL animation will cycle through each word. If a word is unknown, it will be
-    marked red, and will be skipped. Words can be recorded for this page using the <a href="/record"
-      >Record ASL</a
-    > page.
-  </p>
 </Layout>
 
 <style>
   .main {
     display: flex;
     flex-direction: column;
-    gap: var(--2);
   }
 
   .word-list {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    justify-content: center;
     gap: var(--1);
+    width: 100%;
+    box-sizing: border-box;
+    background-color: var(--background-50);
+    border-radius: var(--2);
+    padding: var(--2);
+  }
+
+  .word-placeholder {
+    color: var(--text-700);
+    text-align: center;
+    width: 100%;
+    display: none;
+  }
+
+  .word-placeholder:only-child {
+    display: inline;
   }
 
   .word-chip {
@@ -71,7 +88,7 @@ import Pane from "../components/Pane.astro";
 
   .app {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: stretch;
     flex-direction: column;
     gap: var(--2);
@@ -81,6 +98,10 @@ import Pane from "../components/Pane.astro";
     display: flex;
     flex-direction: row;
     gap: var(--1);
+  }
+
+  .input-wrapper input {
+    flex-grow: 1;
   }
 
   .wrapper {
@@ -190,6 +211,7 @@ import Pane from "../components/Pane.astro";
       submitButton.removeAttribute("disabled");
       submitButton.textContent = "Restart";
       submitButton.style.display = "";
+      submitButton.style.margin = "auto";
       submitButton.onclick = () => {
         window.location.reload();
       };
