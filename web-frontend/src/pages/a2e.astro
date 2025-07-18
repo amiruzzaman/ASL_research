@@ -11,50 +11,7 @@ import Pane from "../components/Pane.astro";
     <video style="display: none;" loop id="video-output"></video>
     <p id="output-text" style="display: none;"></p>
   </Pane>
-
-  <!-- <p> -->
-  <!--   Record some ASL using the button above. The ASL will be interpreted to ASL gloss and then -->
-  <!--   transformed into English. -->
-  <!-- </p> -->
 </Layout>
-
-<style>
-  label {
-    text-align: center;
-  }
-
-  p#output-text {
-    text-align: center;
-    padding: var(--2);
-    overflow-y: auto;
-    max-height: calc(100% - var(--6));
-  }
-
-  .app {
-    display: flex;
-    flex-direction: column;
-    gap: var(--2);
-  }
-
-  .interface {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-  }
-
-  #pane {
-    height: 40vh;
-  }
-
-  #output-text {
-    font-size: var(--5);
-  }
-
-  video {
-    height: 100%;
-    border-radius: var(--1);
-  }
-</style>
 
 <script>
   import { decodeAsync } from "@msgpack/msgpack";

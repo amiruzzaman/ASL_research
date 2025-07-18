@@ -117,6 +117,7 @@ type AnimationContext = {
   paused: boolean;
   currentFps: number;
   lastRender: number;
+  transitionTimeout: number | null;
   wordCallback?: (idx: number) => void;
 };
 
@@ -205,9 +206,41 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
   const waitTime = 300;
   const canvasCtx = ctx.canvas.getContext("2d")!;
 
+  let wordJumpReq: number | null = null;
+  let needToTransitionAfterUnpause = false;
+
+  const jumpWord = (word: number) => {
+    wordJumpReq = word;
+  };
+
+  const pause = (val: boolean) => {
+    if (val && animContext.transitionTimeout) {
+      clearTimeout(animContext.transitionTimeout);
+      animContext.transitionTimeout = null;
+      needToTransitionAfterUnpause = true;
+    }
+    animContext.paused = val;
+    if (!val && needToTransitionAfterUnpause) {
+      animContext.currentWord = (animContext.currentWord + 1) % wordLen;
+      animContext.currentFrame = 0;
+      needToTransitionAfterUnpause = false;
+    }
+  };
+
   // == MAIN ANIMATION LOOP ==
   function mainLoop(now: number) {
     requestAnimationFrame(mainLoop);
+
+    if (wordJumpReq !== null) {
+      animContext.currentWord = wordJumpReq;
+      animContext.currentFrame = 0;
+      animContext.paused = false;
+      if (animContext.transitionTimeout) {
+        clearTimeout(animContext.transitionTimeout);
+        animContext.transitionTimeout = null;
+      }
+      wordJumpReq = null;
+    }
 
     if (animContext.paused) {
       return;
@@ -222,11 +255,12 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
     if (currFrame >= (currWordData.frames?.length ?? 0)) {
       // Next Word
       animContext.paused = true;
-      setTimeout(() => {
+      animContext.transitionTimeout = setTimeout(() => {
+        animContext.transitionTimeout = null;
         animContext.currentWord = (animContext.currentWord + 1) % wordLen;
         animContext.currentFrame = 0;
         animContext.paused = false;
-      }, waitTime);
+      }, waitTime) as unknown as number; // TS sees it as NodeJS timeout :(
     } else {
       // Still on this word
       const currFrameData = currWordData?.frames?.[animContext.currentFrame];
@@ -255,6 +289,8 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
   }
 
   requestAnimationFrame(mainLoop);
+
+  return { jumpWord, pause };
 };
 
 export const prepareCanvas = (canvas: HTMLCanvasElement): RenderContext => {
@@ -291,14 +327,7 @@ export const renderAsl = (
   ctx: RenderContext,
   req: TranslationRequest,
   onWordChange?: (index: number) => void,
-) => {
-  if (ctx.anim) {
-    ctx.anim.req = req;
-    ctx.anim.paused = false;
-    ctx.anim.currentWord = 0;
-    ctx.anim.currentFrame = 0;
-    ctx.anim.wordCallback = onWordChange;
-  } else {
+): { pause: (val: boolean) => void, jumpWord: (word: number) => void } => {
     const animContext = {
       req,
       currentWord: 0,
@@ -306,8 +335,8 @@ export const renderAsl = (
       wordCallback: onWordChange,
       paused: false,
       currentFps: 30,
+      transitionTimeout: null,
       lastRender: window.performance.now(),
     } as AnimationContext;
-    prepareAnim(ctx, animContext);
-  }
+    return prepareAnim(ctx, animContext);
 };

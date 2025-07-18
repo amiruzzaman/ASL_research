@@ -1,35 +1,56 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { Icon } from "astro-icon/components";
+
+const cards = {
+  "English to ASL": [
+    "tabler:speakerphone",
+    "Convert English text or speech to an ASL animation",
+    "/e2a",
+  ],
+  "Record ASL": ["tabler:video-plus", "Record/Save ASL animations for a specific gloss", "/record"],
+  "ASL to English": [
+    "tabler:hand-stop",
+    "Record an ASL video and get the English translation for it",
+    "/a2e",
+  ],
+};
 ---
 
 <Layout title="ASL Research Project">
-  <p>
-    Use this web interface to convert to/from ASL. The navigation links at the top or the buttons
-    below will take you to various pages that use our program to translate.
-  </p>
-  <div class="colrow-md">
-    <a class="as-button" href="/e2a">👋 → 💬<br />English To ASL</a>
-    <a class="as-button" href="/record">📸 👋<br />Record ASL</a>
-    <a class="as-button" href="/a2e">💬 → 👋<br />ASL To English</a>
+  <div class="hero py-2 min-h-max mb-2 bg-base-200 shadow-sm">
+    <div class="hero-content flex-col lg:flex-row-reverse">
+      <img class="min-h-48 rounded" src="/favicon.svg" alt="A rainbow hand waving" />
+      <span class="w-1/2"></span>
+      <div>
+        <h1 class="text-5xl font-bold text-center lg:text-left">ASL Translation Site</h1>
+        <p class="py-6 text-center lg:text-left">
+          Use this web interface to convert to/from American Sign Language. The navigation links at
+          the top or the buttons below will take you to various pages that use our program to
+          translate.
+        </p>
+      </div>
+      {/* TODO: When we get a full demo working I want a CTA for it here */}
+    </div>
+  </div>
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
+    {
+      Object.entries(cards).map(([title, [icon, desc, href]]) => (
+        <div class="card bg-base-200 shadow-sm py-12 lg:py-24">
+          <div class="card-body items-center text-center">
+            <h2 class="text-2xl card-title mb-2 flex flex-col gap-2">
+              <Icon class="text-6xl" name={icon} />
+              {title}
+            </h2>
+            <p class="">{desc}</p>
+            <div class="card-actions">
+              <a class="btn btn-primary" href={href}>
+                {title}
+              </a>
+            </div>
+          </div>
+        </div>
+      ))
+    }
   </div>
 </Layout>
-
-<style>
-  div {
-    display: flex;
-    align-content: stretch;
-    height: 30%;
-    gap: var(--2);
-    margin: var(--4) 0;
-  }
-
-  a {
-    height: 100%;
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--4);
-    text-align: center;
-  }
-</style>

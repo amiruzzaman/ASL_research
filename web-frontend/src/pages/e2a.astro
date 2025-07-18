@@ -1,117 +1,68 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import ASLCanvas from "../components/ASLCanvas.astro";
-import Pane from "../components/Pane.astro";
+import { Icon } from "astro-icon/components";
 ---
 
-<Layout class="main" title="English to ASL">
-  <span
+<Layout
+  class="flex flex-col justify-center items-center overflow-hidden max-h-3/4"
+  title="English to ASL"
+>
+  <button
     id="word-template"
-    data-active="false"
-    data-unknown="false"
     style="display: none;"
-    class="word-chip"></span>
-  <!-- <p> -->
-  <!--   Translate English sentences to ASL signs. Enter the English sentence in the field above and -->
-  <!--   click "Play". The ASL animation will cycle through each word. If a word is unknown, it will be -->
-  <!--   marked red, and will be skipped. Words can be recorded for this page using the <a href="/record" -->
-  <!--     >Record ASL</a -->
-  <!--   > page. -->
-  <!-- </p> -->
-  <div class="app">
-    <div class="input-wrapper">
-      <input
-        id="user-input"
-        aria-label="Enter English Sentence"
-        name="word-input"
-        type="text"
-        placeholder="Enter an English Sentence"
-      />
-      <button id="mic">🎤 Use Audio</button>
-      <button disabled id="submit">Play</button>
+    class="data-active:btn-accent btn-soft data-unknown:btn-disabled carousel-item btn"></button>
+  <div class="bg-base-200 shadow-sm w-full max-w-3/4 p-8 flex flex-col has-checked:grow">
+    <input class="peer hidden" id="app-screen" type="checkbox" />
+    <div
+      class="md:py-32 peer-checked:hidden peer-indeterminate:hidden items-center justify-center flex flex-col w-full md:flex-row"
+    >
+      <div class="flex flex-col p-4 justify-center items-center gap-2 text-center">
+        <label class="input">
+          <input
+            class="grow"
+            id="user-input"
+            name="word-input"
+            type="text"
+            placeholder="Enter an English Sentence"
+          />
+        </label>
+        <button class="btn btn-primary btn-block" id="submit">Play</button>
+      </div>
+      <div class="divider md:divider-horizontal px-4">Or</div>
+      <div class="p-4 text-center flex flex-col gap-2 items-center justify-center">
+        <button id="mic" class="btn btn-primary peer">
+          <Icon name="tabler:microphone" />
+          Use Microphone
+        </button>
+        <div role="alert" class="hidden peer-disabled:block alert alert-soft alert-error">
+          Not Supported On Your Browser
+        </div>
+      </div>
     </div>
-    <div id="word-list" class="word-list">
-      <span class="word-placeholder">Gloss Will Appear Here</span>
+    <div
+      class="hidden peer-indeterminate:flex w-full h-full flex-col gap-8 items-center justify-center"
+    >
+      <p class="text-4xl">Loading</p>
+      <progress id="progress" class="progress"></progress>
     </div>
-    <Pane id="pane" class="wrapper">
-      <ASLCanvas id="canvas" />
-    </Pane>
+    <div class="hidden peer-checked:flex flex-col grow">
+      <div class="flex flex-row gap-2">
+        <label class="swap btn btn-soft btn-info" aria-role="button" aria-label="Toggle Pause">
+          <input type="checkbox" id="play-pause" />
+          <Icon class="swap-on" name="tabler:player-play-filled" />
+          <Icon class="swap-off" name="tabler:player-pause-filled"/>
+        </label>
+        <div id="word-list" class="carousel flex gap-2"></div>
+      </div>
+      <div class="relative grow">
+        <ASLCanvas id="canvas" />
+      </div>
+    </div>
   </div>
 </Layout>
 
-<style>
-  .main {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .word-list {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--1);
-    width: 100%;
-    box-sizing: border-box;
-    background-color: var(--background-50);
-    border-radius: var(--2);
-    padding: var(--2);
-  }
-
-  .word-placeholder {
-    color: var(--text-700);
-    text-align: center;
-    width: 100%;
-    display: none;
-  }
-
-  .word-placeholder:only-child {
-    display: inline;
-  }
-
-  .word-chip {
-    border-radius: var(--4);
-    padding: var(--1) var(--2);
-    border: dashed 2px var(--accent-50);
-    background-color: var(--accent-100);
-  }
-
-  .word-chip[data-active="true"] {
-    border-style: solid;
-    border-color: var(--primary-200);
-    background-color: var(--primary-100);
-  }
-
-  .word-list > .word-chip[data-unknown="true"] {
-    border-color: red;
-  }
-
-  .app {
-    display: flex;
-    align-items: stretch;
-    justify-content: stretch;
-    flex-direction: column;
-    gap: var(--2);
-  }
-
-  .input-wrapper {
-    display: flex;
-    flex-direction: row;
-    gap: var(--1);
-  }
-
-  .input-wrapper input {
-    flex-grow: 1;
-  }
-
-  .wrapper {
-    width: 100%;
-    height: 40vh;
-  }
-</style>
-
 <script>
-  import { usePane } from "../components/Pane.astro";
   import {
     createRequest,
     renderAsl,
@@ -126,11 +77,14 @@ import Pane from "../components/Pane.astro";
   ): HTMLElement[] => {
     return req.words.map((word: string, i) => {
       const wordId = `anim-word-${i}`;
-      const wordUi = template.cloneNode() as HTMLElement;
+      const wordUi = template.cloneNode() as HTMLButtonElement;
       wordUi.id = wordId;
       wordUi.style.display = "unset";
       wordUi.textContent = word;
-      wordUi.dataset.unknown = (!(word in req.dataMap)).toString();
+      if (!(word in req.dataMap)) {
+        wordUi.dataset.unknown = "true";
+        wordUi.disabled = true;
+      }
       target.appendChild(wordUi);
       return wordUi as HTMLElement;
     });
@@ -139,7 +93,11 @@ import Pane from "../components/Pane.astro";
   const setWordActive = (word: number, active: boolean) => {
     const elem = document.getElementById(`anim-word-${word}`);
     if (elem) {
-      elem.dataset.active = active.toString();
+      if (active) {
+        elem.dataset.active = "true";
+      } else {
+        elem.removeAttribute("data-active");
+      }
     }
   };
 
@@ -149,11 +107,13 @@ import Pane from "../components/Pane.astro";
     const wordUiTemplate = document.getElementById("word-template")!;
     const wordList = document.getElementById("word-list")!;
     const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
-    const pane = usePane(document.getElementById("pane")! as HTMLDivElement);
     const recordButton = document.getElementById("mic")! as HTMLButtonElement;
+    const appScreen = document.getElementById("app-screen")! as HTMLInputElement;
+    const progBar = document.getElementById("progress")! as HTMLProgressElement;
+    const playPause = document.getElementById("play-pause")! as HTMLInputElement;
 
     if (!("webkitSpeechRecognition" in window)) {
-      recordButton.style.display = "none";
+      recordButton.disabled = true;
     } else {
       // @ts-expect-error Checked Above
       const recognition = new webkitSpeechRecognition();
@@ -186,37 +146,41 @@ import Pane from "../components/Pane.astro";
       };
     }
 
-    const ctx = prepareCanvas(canvas);
     submitButton.onclick = async () => {
       const input = userInputBox.value.trim();
       if (input.length === 0) return;
 
-      recordButton.style.display = "none";
-      submitButton.style.display = "none";
-      userInputBox.style.display = "none";
-      pane.setLoading(true);
+      appScreen.indeterminate = true;
 
       const req = await createRequest(input, (progress) => {
-        pane.setLoadingText(`Fetching Words (${progress.currentWord}/${progress.totalWords})`);
+        progBar.value = progress.currentWord;
+        progBar.max = progress.totalWords;
       });
-      pane.setLoadingText("Preparing");
-      buildWordUi(wordUiTemplate, wordList, req);
+
+      appScreen.checked = true;
+      appScreen.indeterminate = false;
+
+
+      const wordUi = buildWordUi(wordUiTemplate, wordList, req);
       let lastWord = 0;
-      renderAsl(ctx, req, (i) => {
+      const ctx = prepareCanvas(canvas);
+      const animHandle = renderAsl(ctx, req, (i) => {
         setWordActive(lastWord, false);
         setWordActive(i, true);
         lastWord = i;
       });
-      pane.setLoading(false);
-      submitButton.removeAttribute("disabled");
-      submitButton.textContent = "Restart";
-      submitButton.style.display = "";
-      submitButton.style.margin = "auto";
-      submitButton.onclick = () => {
-        window.location.reload();
+
+      playPause.onchange = () => {
+        animHandle.pause(playPause.checked); 
       };
-    };
-    submitButton.removeAttribute("disabled");
+
+      wordUi.forEach((elem, i) => {
+        elem.onclick = () => {
+        console.debug("Jump", i, elem);
+          animHandle.jumpWord(i);
+        };
+      });
+   };
     userInputBox.focus();
     document.onkeydown = (e) => {
       if (e.key === "Enter") {

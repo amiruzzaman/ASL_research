@@ -11,12 +11,17 @@
     "lint": "tsc --noEmit && eslint --cache . && prettier --check ."
   },
   "dependencies": {
+    "@iconify-json/tabler": "^1.2.19",
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@msgpack/msgpack": "^3.1.1",
     "@playform/inline": "^0.1.2",
+    "@tailwindcss/vite": "^4.1.11",
     "astro": "^5.7.8",
     "astro-favicons": "^3.1.5",
-    "lightningcss": "^1.29.3"
+    "astro-icon": "^1.1.5",
+    "daisyui": "^5.0.46",
+    "lightningcss": "^1.29.3",
+    "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
