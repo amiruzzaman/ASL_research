@@ -178,6 +178,7 @@ import { Icon } from "astro-icon/components";
         elem.onclick = () => {
         console.debug("Jump", i, elem);
           animHandle.jumpWord(i);
+          playPause.checked = false;
         };
       });
    };
