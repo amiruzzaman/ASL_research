@@ -26,7 +26,7 @@
   in
     pkgs.lib.composeExtensions overlay (_final: prev: {
       opencv-contrib-python = hacks.nixpkgsPrebuilt {
-        from = pkgs.python3Packages.opencv4;
+        from = pkgs.python3Packages.opencv-python-headless;
         prev = prev.opencv-contrib-python;
       };
       mediapipe = prev.mediapipe.overrideAttrs (old: {
