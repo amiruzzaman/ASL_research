@@ -30,7 +30,7 @@ words_dir = Path(environ.get("WORD_LIBRARY_LOCATION") or "words/").resolve()
 app = Flask(__name__)
 
 holistic_options = vision.HolisticLandmarkerOptions(
-    base_options=mp.tasks.BaseOptions(model_asset_path=model_path),
+    base_options=mp.tasks.BaseOptions(model_asset_path=model_path, delegate=mp.tasks.BaseOptions.Delegate.GPU),
     running_mode=vision.RunningMode.VIDEO,
 )
 
