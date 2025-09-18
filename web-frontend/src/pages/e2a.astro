@@ -18,15 +18,7 @@ import { Icon } from "astro-icon/components";
       class="md:py-32 peer-checked:hidden peer-indeterminate:hidden items-center justify-center flex flex-col w-full md:flex-row"
     >
       <div class="flex flex-col p-4 justify-center items-center gap-2 text-center">
-        <label class="input">
-          <input
-            class="grow"
-            id="user-input"
-            name="word-input"
-            type="text"
-            placeholder="Enter an English Sentence"
-          />
-        </label>
+        
         <button class="btn btn-primary btn-block" id="submit">Play</button>
       </div>
       <div class="divider md:divider-horizontal px-4">Or</div>
@@ -46,149 +38,8 @@ import { Icon } from "astro-icon/components";
       <p class="text-4xl">Loading</p>
       <progress id="progress" class="progress"></progress>
     </div>
-    <div class="hidden peer-checked:flex flex-col grow">
-      <div class="flex flex-row gap-2">
-        <label class="swap btn btn-soft btn-info" aria-role="button" aria-label="Toggle Pause">
-          <input type="checkbox" id="play-pause" />
-          <Icon class="swap-on" name="tabler:player-play-filled" />
-          <Icon class="swap-off" name="tabler:player-pause-filled"/>
-        </label>
-        <div id="word-list" class="carousel flex gap-2"></div>
-      </div>
-      <div class="relative grow">
-        <ASLCanvas id="canvas" />
-      </div>
-    </div>
+    
   </div>
 </Layout>
 
-<script>
-  import {
-    createRequest,
-    renderAsl,
-    prepareCanvas,
-    type TranslationRequest,
-  } from "../lib/asl-render";
 
-  const buildWordUi = (
-    template: HTMLElement,
-    target: HTMLElement,
-    req: TranslationRequest,
-  ): HTMLElement[] => {
-    return req.words.map((word: string, i) => {
-      const wordId = `anim-word-${i}`;
-      const wordUi = template.cloneNode() as HTMLButtonElement;
-      wordUi.id = wordId;
-      wordUi.style.display = "unset";
-      wordUi.textContent = word;
-      if (!(word in req.dataMap)) {
-        wordUi.dataset.unknown = "true";
-        wordUi.disabled = true;
-      }
-      target.appendChild(wordUi);
-      return wordUi as HTMLElement;
-    });
-  };
-
-  const setWordActive = (word: number, active: boolean) => {
-    const elem = document.getElementById(`anim-word-${word}`);
-    if (elem) {
-      if (active) {
-        elem.dataset.active = "true";
-      } else {
-        elem.removeAttribute("data-active");
-      }
-    }
-  };
-
-  const ready = () => {
-    const submitButton = document.getElementById("submit")!;
-    const userInputBox = document.getElementById("user-input")! as HTMLInputElement;
-    const wordUiTemplate = document.getElementById("word-template")!;
-    const wordList = document.getElementById("word-list")!;
-    const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
-    const recordButton = document.getElementById("mic")! as HTMLButtonElement;
-    const appScreen = document.getElementById("app-screen")! as HTMLInputElement;
-    const progBar = document.getElementById("progress")! as HTMLProgressElement;
-    const playPause = document.getElementById("play-pause")! as HTMLInputElement;
-
-    if (!("webkitSpeechRecognition" in window)) {
-      recordButton.disabled = true;
-    } else {
-      // @ts-expect-error Checked Above
-      const recognition = new webkitSpeechRecognition();
-      recognition.lang = "en-US";
-      let transcript = "";
-
-      recognition.onresult = (e: {
-        resultIndex: number;
-        results: { 0: { transcript: string }; isFinal: boolean }[];
-      }) => {
-        for (let i = e.resultIndex; i < e.results.length; ++i) {
-          if (e.results[i].isFinal) {
-            transcript += e.results[i][0].transcript;
-            console.debug(transcript);
-          }
-        }
-      };
-
-      recognition.onend = () => {
-        userInputBox.value = transcript;
-        transcript = "";
-        recordButton.innerText = "Use Audio";
-        recordButton.disabled = false;
-      };
-
-      recordButton.onclick = async () => {
-        recordButton.innerText = "Recording";
-        recordButton.disabled = true;
-        recognition.start();
-      };
-    }
-
-    submitButton.onclick = async () => {
-      const input = userInputBox.value.trim();
-      if (input.length === 0) return;
-
-      appScreen.indeterminate = true;
-
-      const req = await createRequest(input, (progress) => {
-        progBar.value = progress.currentWord;
-        progBar.max = progress.totalWords;
-      });
-
-      appScreen.checked = true;
-      appScreen.indeterminate = false;
-
-
-      const wordUi = buildWordUi(wordUiTemplate, wordList, req);
-      let lastWord = 0;
-      const ctx = prepareCanvas(canvas);
-      const animHandle = renderAsl(ctx, req, (i) => {
-        setWordActive(lastWord, false);
-        setWordActive(i, true);
-        lastWord = i;
-      });
-
-      playPause.onchange = () => {
-        animHandle.pause(playPause.checked); 
-      };
-
-      wordUi.forEach((elem, i) => {
-        elem.onclick = () => {
-        console.debug("Jump", i, elem);
-          animHandle.jumpWord(i);
-          playPause.checked = false;
-        };
-      });
-   };
-    userInputBox.focus();
-    document.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        submitButton.click();
-      }
-    };
-  };
-
-  window.onload = ready;
-</script>

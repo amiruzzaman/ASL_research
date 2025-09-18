@@ -80,11 +80,12 @@ const getGlossTerms = async (phrase: string): Promise<string[]> => {
 
 export const createRequest = async (
   phrase: string,
+  initialDataMap?: Record<string, WordData>,
   progressCallback?: (payload: WordProgress) => void,
 ): Promise<TranslationRequest> => {
   const words = await getGlossTerms(phrase);
 
-  const dataMap: Record<string, WordData> = {};
+  const dataMap: Record<string, WordData> = initialDataMap ?? {};
   const failedWords: string[] = [];
 
   const totalWords = words.length;
@@ -109,6 +110,11 @@ export const createRequest = async (
     dataMap,
   };
 };
+
+export const mergeRequests = (reqA: TranslationRequest, reqB: TranslationRequest): TranslationRequest => ({
+  words: [...reqA.words, ...reqB.words],
+  dataMap: {...reqA.dataMap, ...reqB.dataMap},
+});
 
 type AnimationContext = {
   req: TranslationRequest;
@@ -257,7 +263,7 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
       animContext.paused = true;
       animContext.transitionTimeout = setTimeout(() => {
         animContext.transitionTimeout = null;
-        animContext.currentWord = (animContext.currentWord + 1) % wordLen;
+        animContext.currentWord += 1;
         animContext.currentFrame = 0;
         animContext.paused = false;
       }, waitTime) as unknown as number; // TS sees it as NodeJS timeout :(
@@ -322,6 +328,8 @@ export const prepareCanvas = (canvas: HTMLCanvasElement): RenderContext => {
 
   return ctx;
 };
+
+export const addTranscript = (ctx: RenderContext, req: TranslationRequest)
 
 export const renderAsl = (
   ctx: RenderContext,

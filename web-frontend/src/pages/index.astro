@@ -1,56 +1,150 @@
 ---
+import ASLCanvas from "../components/ASLCanvas.astro";
 import Layout from "../layouts/Layout.astro";
-import { Icon } from "astro-icon/components";
-
-const cards = {
-  "English to ASL": [
-    "tabler:speakerphone",
-    "Convert English text or speech to an ASL animation",
-    "/e2a",
-  ],
-  "Record ASL": ["tabler:video-plus", "Record/Save ASL animations for a specific gloss", "/record"],
-  "ASL to English": [
-    "tabler:hand-stop",
-    "Record an ASL video and get the English translation for it",
-    "/a2e",
-  ],
-};
 ---
 
-<Layout title="ASL Research Project">
-  <div class="hero py-2 min-h-max mb-2 bg-base-200 shadow-sm">
-    <div class="hero-content flex-col lg:flex-row-reverse">
-      <img class="min-h-48 rounded" src="/favicon.svg" alt="A rainbow hand waving" />
-      <span class="w-1/2"></span>
-      <div>
-        <h1 class="text-5xl font-bold text-center lg:text-left">ASL Translation Site</h1>
-        <p class="py-6 text-center lg:text-left">
-          Use this web interface to convert to/from American Sign Language. The navigation links at
-          the top or the buttons below will take you to various pages that use our program to
-          translate.
-        </p>
+<Layout class="flex flex-col" title="ASL Research Project">
+  <div class="grow h-full grid gap-2 grid-rows-2 md:grid-cols-2">
+    <div class="flex flex-col gap-2" id="e2a">
+      <div class="w-full">
+        <ASLCanvas class="w-full" id="canvas" />
       </div>
-      {/* TODO: When we get a full demo working I want a CTA for it here */}
+      <button class="btn btn-primary btn-block"> Start Recording Microphone </button>
+      <div class="flex flex-row gap-2">
+        <div id="word-list" class="h-12 carousel flex gap-2"></div>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2" id="a2e">
+      <video class="bg-base-200 aspect-video" id="video" />
+      <button class="btn btn-primary btn-block">Start Recording Video</button>
+      <p class="lowercase" id="vid-output">Output Text Will Appear Here</p>
     </div>
   </div>
-  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
-    {
-      Object.entries(cards).map(([title, [icon, desc, href]]) => (
-        <div class="card bg-base-200 shadow-sm py-12 lg:py-24">
-          <div class="card-body items-center text-center">
-            <h2 class="text-2xl card-title mb-2 flex flex-col gap-2">
-              <Icon class="text-6xl" name={icon} />
-              {title}
-            </h2>
-            <p class="">{desc}</p>
-            <div class="card-actions">
-              <a class="btn btn-primary" href={href}>
-                {title}
-              </a>
-            </div>
-          </div>
-        </div>
-      ))
-    }
-  </div>
 </Layout>
+
+<script>
+  import {
+    createRequest,
+    renderAsl,
+    prepareCanvas,
+    type TranslationRequest,
+  } from "../lib/asl-render";
+
+  const buildWordUi = (
+    template: HTMLElement,
+    target: HTMLElement,
+    req: TranslationRequest,
+  ): HTMLElement[] => {
+    return req.words.map((word: string, i) => {
+      const wordId = `anim-word-${i}`;
+      const wordUi = template.cloneNode() as HTMLButtonElement;
+      wordUi.id = wordId;
+      wordUi.style.display = "unset";
+      wordUi.textContent = word;
+      if (!(word in req.dataMap)) {
+        wordUi.dataset.unknown = "true";
+        wordUi.disabled = true;
+      }
+      target.appendChild(wordUi);
+      return wordUi as HTMLElement;
+    });
+  };
+
+  const setWordActive = (word: number, active: boolean) => {
+    const elem = document.getElementById(`anim-word-${word}`);
+    if (elem) {
+      if (active) {
+        elem.dataset.active = "true";
+      } else {
+        elem.removeAttribute("data-active");
+      }
+    }
+  };
+
+  const ready = () => {
+    const submitButton = document.getElementById("submit")!;
+    const userInputBox = document.getElementById("user-input")! as HTMLInputElement;
+    const wordUiTemplate = document.getElementById("word-template")!;
+    const wordList = document.getElementById("word-list")!;
+    const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
+    const recordButton = document.getElementById("mic")! as HTMLButtonElement;
+    const appScreen = document.getElementById("app-screen")! as HTMLInputElement;
+    const progBar = document.getElementById("progress")! as HTMLProgressElement;
+    const playPause = document.getElementById("play-pause")! as HTMLInputElement;
+
+    if (!("webkitSpeechRecognition" in window)) {
+      recordButton.disabled = true;
+    } else {
+      // @ts-expect-error Checked Above
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = "en-US";
+      let transcript = "";
+
+      recognition.onresult = (e: {
+        resultIndex: number;
+        results: { 0: { transcript: string }; isFinal: boolean }[];
+      }) => {
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) {
+            transcript += e.results[i][0].transcript;
+          }
+        }
+      };
+
+      recognition.onend = () => {
+        userInputBox.value = transcript;
+        transcript = "";
+        recordButton.innerText = "Start Recording Microphone";
+        recordButton.disabled = false;
+      };
+
+      recordButton.onclick = async () => {
+        recordButton.innerText = "Recording";
+        recordButton.disabled = true;
+        recognition.start();
+      };
+    }
+
+    submitButton.onclick = async () => {
+      const input = userInputBox.value.trim();
+      if (input.length === 0) return;
+
+      appScreen.indeterminate = true;
+
+      const req = await createRequest(input, (progress) => {
+        progBar.value = progress.currentWord;
+        progBar.max = progress.totalWords;
+      });
+
+      appScreen.checked = true;
+      appScreen.indeterminate = false;
+
+
+      const wordUi = buildWordUi(wordUiTemplate, wordList, req);
+      let lastWord = 0;
+      const ctx = prepareCanvas(canvas);
+      const animHandle = renderAsl(ctx, req, (i) => {
+        setWordActive(lastWord, false);
+        setWordActive(i, true);
+        lastWord = i;
+      });
+
+      wordUi.forEach((elem, i) => {
+        elem.onclick = () => {
+        console.debug("Jump", i, elem);
+          animHandle.jumpWord(i);
+          playPause.checked = false;
+        };
+      });
+   };
+    userInputBox.focus();
+    document.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        submitButton.click();
+      }
+    };
+  };
+
+  window.onload = ready;
+</script>
