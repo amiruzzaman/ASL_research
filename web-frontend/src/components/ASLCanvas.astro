@@ -3,7 +3,7 @@ import type { HTMLAttributes } from "astro/types";
 
 export type Props = HTMLAttributes<"canvas">;
 
-const { class: className, ...props } = Astro.props;
+const { ...props } = Astro.props;
 ---
 
-<canvas class:list={[className, "bg-base-200 rounded"]} {...props}></canvas>
+<canvas class="bg-base-200 rounded" {...props}></canvas>
