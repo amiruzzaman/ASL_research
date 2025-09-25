@@ -31,33 +31,35 @@ const navLinks = {
     <meta property="og:site_name" content="ASL Research Project" />
   </head>
 
-  <body class="container mx-auto flex flex-col min-h-screen">
+  <body class="container mx-auto flex flex-col min-h-screen max-h-screen">
     <header class="mb-4">
       <nav class="navbar bg-base-100 shadow-sm">
         <div class="navbar-start">
-          <a class="btn btn-soft text-xl p-2" href="/">
-            <img class="max-h-full me-2" src="/favicon.svg" alt="A rainbow colored hand waving" />
-            ASL Research
+          <a class="btn btn-soft btn-xl text-xl p-2 tooltip tooltip-right" data-tip="Home" href="/">
+            <img class="max-h-full" src="/favicon.svg" alt="A rainbow colored hand waving" />
           </a>
         </div>
         <div class="navbar-center flex gap-4">
           {
             Object.entries(navLinks).map(([title, [icon, href]]) => (
-              <a href={href} class="btn btn-soft">
+              <a
+                href={href}
+                class="btn btn-xl text-xl btn-soft tooltip tooltip-bottom"
+                data-tip={title}
+              >
                 <Icon class="text-xl" name={icon} />
-                {title}
               </a>
             ))
           }
         </div>
         <div class="navbar-end">
           <a
-            class="btn btn-soft"
+            class="btn btn-soft btn-xl text-xl tooltip tooltip-left"
+            data-tip="GitHub Repo"
             target="_blank"
             href="https://github.com/amiruzzaman/ASL_research"
           >
             <Icon class="text-xl" name="tabler:brand-github" />
-            GitHub
           </a>
         </div>
       </nav>

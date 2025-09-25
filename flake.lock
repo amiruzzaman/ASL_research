@@ -2,9 +2,7 @@
   "nodes": {
     "flakelight": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1745844883,
@@ -38,15 +36,9 @@
     },
     "pyproject-build-systems": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "pyproject-nix": [
-          "pyproject-nix"
-        ],
-        "uv2nix": [
-          "uv2nix"
-        ]
+        "nixpkgs": ["nixpkgs"],
+        "pyproject-nix": ["pyproject-nix"],
+        "uv2nix": ["uv2nix"]
       },
       "locked": {
         "lastModified": 1744599653,
@@ -64,9 +56,7 @@
     },
     "pyproject-nix": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1745782090,
@@ -93,12 +83,8 @@
     },
     "uv2nix": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "pyproject-nix": [
-          "pyproject-nix"
-        ]
+        "nixpkgs": ["nixpkgs"],
+        "pyproject-nix": ["pyproject-nix"]
       },
       "locked": {
         "lastModified": 1745697651,

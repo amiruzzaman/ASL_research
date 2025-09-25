@@ -20,7 +20,8 @@
     })
   ]);
   virtualenv = editablePythonSet.mkVirtualEnv "asl-research-dev-env" outputs.lib.workspace.deps.all;
-in pkgs.mkShell {
+in
+  pkgs.mkShell {
     packages = with pkgs; [
       nodejs_23
       uv

@@ -81,11 +81,12 @@ const getGlossTerms = async (phrase: string): Promise<string[]> => {
 export const createRequest = async (
   phrase: string,
   progressCallback?: (payload: WordProgress) => void,
+  existingReq?: TranslationRequest,
 ): Promise<TranslationRequest> => {
   const words = await getGlossTerms(phrase);
 
-  const dataMap: Record<string, WordData> = {};
-  const failedWords: string[] = [];
+  const dataMap: Record<string, WordData> = existingReq?.dataMap ?? {};
+  const failedWords: string[] = existingReq?.words ?? [];
 
   const totalWords = words.length;
   let currentWord = 1;
@@ -116,6 +117,7 @@ type AnimationContext = {
   currentFrame: number;
   paused: boolean;
   currentFps: number;
+  currentSpeed: number;
   lastRender: number;
   transitionTimeout: number | null;
   wordCallback?: (idx: number) => void;
@@ -201,9 +203,6 @@ const renderFrame = (ctx: RenderContext, canvas: CanvasRenderingContext2D, frame
 };
 
 const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
-  const wordLen = animContext.req.words.length;
-  // Wait time between words
-  const waitTime = 300;
   const canvasCtx = ctx.canvas.getContext("2d")!;
 
   let wordJumpReq: number | null = null;
@@ -221,8 +220,11 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
     }
     animContext.paused = val;
     if (!val && needToTransitionAfterUnpause) {
-      animContext.currentWord = (animContext.currentWord + 1) % wordLen;
-      animContext.currentFrame = 0;
+      const wordLen = animContext.req.words.length;
+      if (animContext.currentWord === wordLen - 1) {
+        animContext.currentWord++;
+        animContext.currentFrame = 0;
+      }
       needToTransitionAfterUnpause = false;
     }
   };
@@ -230,6 +232,13 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
   // == MAIN ANIMATION LOOP ==
   function mainLoop(now: number) {
     requestAnimationFrame(mainLoop);
+
+    const wordLen = animContext.req.words.length;
+    const waitTime = 250 * animContext.currentSpeed;
+
+    if (wordLen === 0) {
+      return;
+    }
 
     if (wordJumpReq !== null) {
       animContext.currentWord = wordJumpReq;
@@ -257,9 +266,11 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
       animContext.paused = true;
       animContext.transitionTimeout = setTimeout(() => {
         animContext.transitionTimeout = null;
-        animContext.currentWord = (animContext.currentWord + 1) % wordLen;
-        animContext.currentFrame = 0;
-        animContext.paused = false;
+        if (animContext.currentWord !== wordLen - 1) {
+          animContext.currentWord++;
+          animContext.currentFrame = 0;
+          animContext.paused = false;
+        }
       }, waitTime) as unknown as number; // TS sees it as NodeJS timeout :(
     } else {
       // Still on this word
@@ -267,7 +278,7 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
       animContext.currentFps = currWordData.fps ?? 30; // Assume 30 FPS
 
       // 1000 ms in a sec, we want X FPS, so 1000 / X is how long we need to wait.
-      const targetInterval = 1000 / animContext.currentFps;
+      const targetInterval = (1000 / animContext.currentFps) * animContext.currentSpeed;
 
       if (now - animContext.lastRender > targetInterval) {
         animContext.lastRender = now;
@@ -275,7 +286,9 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
           animContext.wordCallback?.(currWordPos);
           if (currFrameData === undefined) {
             // Our word is unknown, skip it
-            animContext.currentWord = (animContext.currentWord + 1) % wordLen;
+            if (animContext.currentWord !== wordLen - 1) {
+              animContext.currentWord++;
+            }
             return;
           } else {
             renderFrame(ctx, canvasCtx, currFrameData);
@@ -290,7 +303,21 @@ const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
 
   requestAnimationFrame(mainLoop);
 
-  return { jumpWord, pause };
+  return {
+    changeSpeed: (speed: number) => {
+      animContext.currentSpeed = speed;
+    },
+    jumpWord,
+    pause,
+    resetWords: () => {
+      animContext.paused = true;
+      animContext.currentWord = 0;
+      animContext.currentFrame = 0;
+      animContext.req.words = [];
+      animContext.paused = false;
+    },
+    addWords: addToContext(animContext),
+  };
 };
 
 export const prepareCanvas = (canvas: HTMLCanvasElement): RenderContext => {
@@ -323,20 +350,44 @@ export const prepareCanvas = (canvas: HTMLCanvasElement): RenderContext => {
   return ctx;
 };
 
+export const addToContext =
+  (animContext: AnimationContext) =>
+  async (phrase: string): Promise<TranslationRequest> => {
+    const newReq: TranslationRequest = await createRequest(phrase, () => {}, animContext.req);
+    const oldLen = animContext.req.words.length;
+    animContext.req.dataMap = { ...animContext.req.dataMap, ...newReq.dataMap };
+    animContext.req.words = [...animContext.req.words, ...newReq.words];
+    if (animContext.paused && animContext.currentWord === oldLen - 1) {
+      animContext.currentWord++;
+      animContext.currentFrame = 0;
+      animContext.paused = false;
+    }
+    return animContext.req;
+  };
+
+export type AnimHandle = {
+  changeSpeed: (speed: number) => void;
+  addWords: (phrase: string) => Promise<TranslationRequest>;
+  resetWords: () => void;
+  pause: (val: boolean) => void;
+  jumpWord: (word: number) => void;
+};
+
 export const renderAsl = (
   ctx: RenderContext,
   req: TranslationRequest,
   onWordChange?: (index: number) => void,
-): { pause: (val: boolean) => void, jumpWord: (word: number) => void } => {
-    const animContext = {
-      req,
-      currentWord: 0,
-      currentFrame: 0,
-      wordCallback: onWordChange,
-      paused: false,
-      currentFps: 30,
-      transitionTimeout: null,
-      lastRender: window.performance.now(),
-    } as AnimationContext;
-    return prepareAnim(ctx, animContext);
+): AnimHandle => {
+  const animContext = {
+    req,
+    currentWord: 0,
+    currentFrame: 0,
+    wordCallback: onWordChange,
+    paused: false,
+    currentFps: 30,
+    currentSpeed: 1,
+    transitionTimeout: null,
+    lastRender: window.performance.now(),
+  } as AnimationContext;
+  return prepareAnim(ctx, animContext);
 };

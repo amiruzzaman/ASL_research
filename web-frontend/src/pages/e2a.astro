@@ -4,21 +4,16 @@ import ASLCanvas from "../components/ASLCanvas.astro";
 import { Icon } from "astro-icon/components";
 ---
 
-<Layout
-  class="flex flex-col justify-center items-center overflow-hidden max-h-3/4"
-  title="English to ASL"
->
+<Layout class="overflow-hidden flex flex-col" title="English to ASL">
   <button
     id="word-template"
     style="display: none;"
-    class="data-active:btn-accent btn-soft data-unknown:btn-disabled carousel-item btn"></button>
-  <div class="bg-base-200 shadow-sm w-full max-w-3/4 p-8 flex flex-col has-checked:grow">
-    <input class="peer hidden" id="app-screen" type="checkbox" />
-    <div
-      class="md:py-32 peer-checked:hidden peer-indeterminate:hidden items-center justify-center flex flex-col w-full md:flex-row"
-    >
-      <div class="flex flex-col p-4 justify-center items-center gap-2 text-center">
-        <label class="input">
+    class="data-active:shadow-accent shadow-sm btn-lg data-active:btn-accent btn-soft data-unknown:btn-disabled carousel-item btn"
+  ></button>
+  <div class="bg-base-200 shadow-sm w-full p-8 flex flex-col grow overflow-hidden">
+    <div class="items-center justify-center flex flex-col w-full md:flex-row">
+      <div class="join flex flex-row justify-center items-center text-center">
+        <label class="join-item input input-lg grow">
           <input
             class="grow"
             id="user-input"
@@ -27,36 +22,64 @@ import { Icon } from "astro-icon/components";
             placeholder="Enter an English Sentence"
           />
         </label>
-        <button class="btn btn-primary btn-block" id="submit">Play</button>
+        <button class="join-item btn btn-lg btn-primary tooltip" data-tip="Submit" id="submit">
+          <Icon name="tabler:send-2" />
+        </button>
       </div>
-      <div class="divider md:divider-horizontal px-4">Or</div>
-      <div class="p-4 text-center flex flex-col gap-2 items-center justify-center">
-        <button id="mic" class="btn btn-primary peer">
-          <Icon name="tabler:microphone" />
-          Use Microphone
+      <div class="divider md:divider-horizontal"></div>
+      <div class="text-center flex flex-row gap-2 items-center justify-center">
+        <button class="btn btn-error btn-lg group peer tooltip" data-tip="Use Microphone" id="mic">
+          <Icon class="group-data-recording:hidden" name="tabler:microphone" />
+          <Icon class="hidden group-data-recording:inline" name="tabler:player-stop-filled" />
         </button>
         <div role="alert" class="hidden peer-disabled:block alert alert-soft alert-error">
-          Not Supported On Your Browser
+          Microphone Not Supported On Your Browser
         </div>
       </div>
     </div>
-    <div
-      class="hidden peer-indeterminate:flex w-full h-full flex-col gap-8 items-center justify-center"
-    >
-      <p class="text-4xl">Loading</p>
-      <progress id="progress" class="progress"></progress>
-    </div>
-    <div class="hidden peer-checked:flex flex-col grow">
-      <div class="flex flex-row gap-2">
-        <label class="swap btn btn-soft btn-info" aria-role="button" aria-label="Toggle Pause">
+    <div class="divider py-2"></div>
+    <div class="flex relative flex-col grow gap-2">
+      <ASLCanvas id="canvas" />
+      <div
+        id="word-list"
+        class="hidden has-[button]:flex bg-[#00000066] max-h-[20%] p-2 rounded carousel absolute bottom-4 left-12 right-12 gap-2 flex-wrap"
+      >
+      </div>
+      <div
+        class="flex flex-row justify-center items-center gap-2 absolute z-100 top-2 left-0 right-0"
+      >
+        <label
+          class="swap btn btn-soft btn-info btn-lg tooltip"
+          data-tip="Play/Pause"
+          aria-role="button"
+          aria-label="Toggle Pause"
+        >
           <input type="checkbox" id="play-pause" />
           <Icon class="swap-on" name="tabler:player-play-filled" />
-          <Icon class="swap-off" name="tabler:player-pause-filled"/>
+          <Icon class="swap-off" name="tabler:player-pause-filled" />
         </label>
-        <div id="word-list" class="carousel flex gap-2"></div>
-      </div>
-      <div class="relative grow">
-        <ASLCanvas id="canvas" />
+        <div
+          data-tip="Playback Speed"
+          class="flex flex-row items-center tooltip tooltip-bottom rounded p-2 gap-2"
+        >
+          <input
+            id="speed"
+            type="range"
+            min="25"
+            max="500"
+            value="400"
+            class="range range-accent range-md"
+          />
+        </div>
+        <button
+          id="reset"
+          class="btn btn-soft btn-error btn-lg tooltip"
+          data-tip="Reset"
+          aria-role="button"
+          aria-label="Reset"
+        >
+          <Icon name="tabler:refresh" />
+        </button>
       </div>
     </div>
   </div>
@@ -68,6 +91,7 @@ import { Icon } from "astro-icon/components";
     renderAsl,
     prepareCanvas,
     type TranslationRequest,
+    type AnimHandle,
   } from "../lib/asl-render";
 
   const buildWordUi = (
@@ -77,6 +101,10 @@ import { Icon } from "astro-icon/components";
   ): HTMLElement[] => {
     return req.words.map((word: string, i) => {
       const wordId = `anim-word-${i}`;
+      const exists = document.getElementById(wordId);
+      if (exists) {
+        return exists;
+      }
       const wordUi = template.cloneNode() as HTMLButtonElement;
       wordUi.id = wordId;
       wordUi.style.display = "unset";
@@ -108,15 +136,90 @@ import { Icon } from "astro-icon/components";
     const wordList = document.getElementById("word-list")!;
     const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
     const recordButton = document.getElementById("mic")! as HTMLButtonElement;
-    const appScreen = document.getElementById("app-screen")! as HTMLInputElement;
-    const progBar = document.getElementById("progress")! as HTMLProgressElement;
     const playPause = document.getElementById("play-pause")! as HTMLInputElement;
+    const resetButton = document.getElementById("reset")! as HTMLButtonElement;
+    const speedControl = document.getElementById("speed")! as HTMLInputElement;
+
+    let animHandle: AnimHandle | null = null;
+
+    const calcSpeed = (percent: number) => 1 / (percent / 100);
+
+    let speed = calcSpeed(speedControl.valueAsNumber);
+
+    speedControl.onchange = () => {
+      speed = calcSpeed(speedControl.valueAsNumber);
+      animHandle?.changeSpeed?.(speed);
+    };
+
+    let blockAdding = false;
+
+    const lockPlay = () => {
+      blockAdding = true;
+      submitButton.setAttribute("disabled", "true");
+    };
+
+    const unlockPlay = () => {
+      blockAdding = false;
+      submitButton.removeAttribute("disabled");
+    };
+
+    const playPhrase = async (phrase: string) => {
+      lockPlay();
+      const req = await (animHandle?.addWords ?? createRequest)(phrase);
+
+      const wordUi = buildWordUi(wordUiTemplate, wordList, req);
+
+      if (animHandle === null) {
+        let lastWord = 0;
+        const ctx = prepareCanvas(canvas);
+        animHandle = renderAsl(ctx, req, (i) => {
+          setWordActive(lastWord, false);
+          setWordActive(i, true);
+          lastWord = i;
+        });
+        animHandle.changeSpeed(speed);
+      }
+
+      playPause.onchange = () => {
+        animHandle!.pause(playPause.checked);
+      };
+
+      wordUi.forEach((elem, i) => {
+        elem.onclick = () => {
+          animHandle!.jumpWord(i);
+          playPause.checked = false;
+        };
+      });
+
+      resetButton.onclick = () => {
+        animHandle?.resetWords?.();
+        wordUi.forEach((elem) => {
+          wordList.removeChild(elem);
+        });
+      };
+      unlockPlay();
+    };
+    userInputBox.focus();
+    document.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        submitButton.click();
+      }
+    };
+
+    submitButton.onclick = async () => {
+      const input = userInputBox.value.trim();
+      if (input.length === 0) return;
+
+      userInputBox.value = "";
+      playPhrase(input);
+    };
 
     if (!("webkitSpeechRecognition" in window)) {
       recordButton.disabled = true;
     } else {
       // @ts-expect-error Checked Above
       const recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
       recognition.lang = "en-US";
       let transcript = "";
 
@@ -127,67 +230,31 @@ import { Icon } from "astro-icon/components";
         for (let i = e.resultIndex; i < e.results.length; ++i) {
           if (e.results[i].isFinal) {
             transcript += e.results[i][0].transcript;
-            console.debug(transcript);
+            if (!blockAdding) {
+              playPhrase(transcript);
+              transcript = "";
+            }
           }
         }
       };
 
-      recognition.onend = () => {
-        userInputBox.value = transcript;
-        transcript = "";
-        recordButton.innerText = "Use Audio";
-        recordButton.disabled = false;
-      };
+      let started = false;
 
       recordButton.onclick = async () => {
-        recordButton.innerText = "Recording";
-        recordButton.disabled = true;
-        recognition.start();
+        started = !started;
+        if (started) {
+          recognition.start();
+          recordButton.setAttribute("data-tip", "Stop Recording");
+          recordButton.setAttribute("data-recording", "true");
+          submitButton.setAttribute("disabled", "true");
+        } else {
+          recognition.stop();
+          recordButton.setAttribute("data-tip", "Use Microphone");
+          recordButton.removeAttribute("data-recording");
+          submitButton.removeAttribute("disabled");
+        }
       };
     }
-
-    submitButton.onclick = async () => {
-      const input = userInputBox.value.trim();
-      if (input.length === 0) return;
-
-      appScreen.indeterminate = true;
-
-      const req = await createRequest(input, (progress) => {
-        progBar.value = progress.currentWord;
-        progBar.max = progress.totalWords;
-      });
-
-      appScreen.checked = true;
-      appScreen.indeterminate = false;
-
-
-      const wordUi = buildWordUi(wordUiTemplate, wordList, req);
-      let lastWord = 0;
-      const ctx = prepareCanvas(canvas);
-      const animHandle = renderAsl(ctx, req, (i) => {
-        setWordActive(lastWord, false);
-        setWordActive(i, true);
-        lastWord = i;
-      });
-
-      playPause.onchange = () => {
-        animHandle.pause(playPause.checked); 
-      };
-
-      wordUi.forEach((elem, i) => {
-        elem.onclick = () => {
-        console.debug("Jump", i, elem);
-          animHandle.jumpWord(i);
-          playPause.checked = false;
-        };
-      });
-   };
-    userInputBox.focus();
-    document.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        submitButton.click();
-      }
-    };
   };
 
   window.onload = ready;
