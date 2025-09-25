@@ -45,8 +45,4 @@ df = df[~df["glosses"].str.contains(r'[0-9]+')]
 # Replace accented characters with non accented counterparts
 df["texts"] = df["texts"].apply(lambda s: ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c)))
 
-# Stripping spaces
-df["texts"] = df["texts"].apply(lambda s: s.strip())
-df["glosses"] = df["glosses"].apply(lambda s: s.strip())
-
 print(df)
