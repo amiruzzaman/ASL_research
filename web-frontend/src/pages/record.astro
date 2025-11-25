@@ -17,62 +17,7 @@ import Pane from "../components/Pane.astro";
     <video style="display: none;" id="video-output"></video>
     <ASLCanvas style="display: none;" id="canvas" />
   </Pane>
-
-  <!-- <p> -->
-  <!--   Record some ASL by clicking the "Start Recording" button above. After recording you'll be shown -->
-  <!--   a preview of your sign and have the option to save it to a local file. Place this file in the <code -->
-  <!--     >words</code -->
-  <!--   > directory to have it available in the <a href="/e2a">English to ASL</a> page. -->
-  <!-- </p> -->
 </Layout>
-
-<style>
-  label {
-    text-align: center;
-  }
-
-  #name-input {
-    margin-left: var(--1);
-  }
-
-  #download-link {
-    text-align: center;
-  }
-
-  .app {
-    display: flex;
-    flex-direction: column;
-    gap: var(--2);
-  }
-
-  .interface {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-  }
-
-  #pane {
-    height: 40vh;
-  }
-
-  .word-actions {
-    display: flex;
-    gap: var(--1);
-    align-items: center;
-  }
-
-  #complete-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--1);
-    align-items: stretch;
-  }
-
-  video {
-    height: 100%;
-    border-radius: var(--1);
-  }
-</style>
 
 <script>
   import { encode } from "@msgpack/msgpack";

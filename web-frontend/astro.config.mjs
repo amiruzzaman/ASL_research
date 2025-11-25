@@ -5,17 +5,13 @@ import favicons from "astro-favicons";
 
 import playformInline from "@playform/inline";
 
+import tailwindcss from "@tailwindcss/vite";
+
+import icon from "astro-icon";
+
 export default defineConfig({
   vite: {
-    css: {
-      transformer: "lightningcss",
-      lightningcss: {
-        drafts: { customMedia: true },
-      },
-    },
-    build: {
-      cssMinify: "lightningcss",
-    },
+    plugins: [tailwindcss()],
   },
 
   integrations: [
@@ -25,5 +21,6 @@ export default defineConfig({
       themes: ["#f9fafb", "#040506"],
     }),
     playformInline(),
+    icon(),
   ],
 });

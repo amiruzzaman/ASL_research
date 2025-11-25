@@ -12,7 +12,7 @@
     ];
   };
 
-  workspace = inputs.uv2nix.lib.workspace.loadWorkspace {workspaceRoot = ./..; };
+  workspace = inputs.uv2nix.lib.workspace.loadWorkspace {workspaceRoot = ./..;};
   overlay = workspace.mkPyprojectOverlay {
     sourcePreference = "wheel";
   };

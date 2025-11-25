@@ -1,64 +1,27 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Pane from "../components/Pane.astro";
 ---
 
-<Layout class="app" title="ASL to English">
-  <div class="interface">
-    <button data-recording="false" id="record">Start Recording</button>
+<Layout class="overflow-hidden h-full flex flex-col" title="ASL to English">
+  <div
+    class="p-8 bg-base-200 grow h-full flex justify-center items-center flex-col overflow-hidden"
+  >
+    <p id="output-text" class="text-4xl mb-4" style="display: none;"></p>
+    <button class="btn btn-primary btn-xl mb-4 md:px-12" data-recording="false" id="record"
+      >Start Recording</button
+    >
+    <video class="skeleton rounded-lg w-full h-full" style="display: none;" loop id="video-output"></video>
+    <div
+      id="spinner"
+      data-hide=""
+      class="peer data-hide:hidden rounded-lg h-1/4 w-1/4 loading loading-spanner loading-xl"
+    >
+    </div>
   </div>
-  <Pane id="pane" startLoading>
-    <video style="display: none;" loop id="video-output"></video>
-    <p id="output-text" style="display: none;"></p>
-  </Pane>
-
-  <!-- <p> -->
-  <!--   Record some ASL using the button above. The ASL will be interpreted to ASL gloss and then -->
-  <!--   transformed into English. -->
-  <!-- </p> -->
 </Layout>
-
-<style>
-  label {
-    text-align: center;
-  }
-
-  p#output-text {
-    text-align: center;
-    padding: var(--2);
-    overflow-y: auto;
-    max-height: calc(100% - var(--6));
-  }
-
-  .app {
-    display: flex;
-    flex-direction: column;
-    gap: var(--2);
-  }
-
-  .interface {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-  }
-
-  #pane {
-    height: 40vh;
-  }
-
-  #output-text {
-    font-size: var(--5);
-  }
-
-  video {
-    height: 100%;
-    border-radius: var(--1);
-  }
-</style>
 
 <script>
   import { decodeAsync } from "@msgpack/msgpack";
-  import { usePane } from "../components/Pane.astro";
 
   const VIDEO_MIME = "video/webm";
 
@@ -80,13 +43,21 @@ import Pane from "../components/Pane.astro";
   };
 
   const ready = () => {
+    const spinnerElem = document.getElementById("spinner")! as HTMLDivElement;
     const videoElem = document.getElementById("video-output")! as HTMLVideoElement;
     const recordButton = document.getElementById("record")! as HTMLButtonElement;
     const outputText = document.getElementById("output-text")! as HTMLParagraphElement;
-    const paneElem = usePane(document.getElementById("pane")! as HTMLDivElement);
 
     let isRecording = false;
     let stopping = false;
+
+    const toggleSpinner = (show: boolean) => {
+      if (show) {
+        spinnerElem.removeAttribute("data-hide");
+      } else {
+        spinnerElem.setAttribute("data-hide", "");
+      }
+    };
 
     const recordStream: MediaStream | null = null;
 
@@ -100,38 +71,33 @@ import Pane from "../components/Pane.astro";
       };
       recordButton.style.display = "";
       recordButton.disabled = false;
-      paneElem.setLoading(false);
+      toggleSpinner(false);
     };
-
-    let onImmediateStop = () => {};
 
     const streamOpened = (stream: MediaStream) => {
       const options = { mimeType: VIDEO_MIME };
       const recordedData: Blob[] = [];
       const recorder = new MediaRecorder(stream, options);
       videoElem.srcObject = stream;
-
-      onImmediateStop = () => {
-        recorder.pause();
-      };
+      videoElem.style.display = "";
+      videoElem.play();
 
       const onData = (e: MediaRecorderEventMap["dataavailable"]) => {
         if (e.data.size > 0 && isRecording) {
           recordedData.push(e.data);
-          if (recorder.state === "recording") {
-            recorder.pause();
-            videoElem.pause();
-            setTimeout(() => {
-              if (recorder.state === "paused") {
-                recorder.resume();
-              }
-              if (isRecording && !stopping) {
-                videoElem.style.display = "";
-                paneElem.setLoading(false);
-                videoElem.play();
-              }
-            }, 2000);
-          }
+          // if (recorder.state === "recording") {
+          //   recorder.pause();
+          //   videoElem.pause();
+          //   setTimeout(() => {
+          //     if (recorder.state === "paused") {
+          //       recorder.resume();
+          //     }
+          //     if (isRecording && !stopping) {
+          //       videoElem.style.display = "";
+          //       videoElem.play();
+          //     }
+          //   }, 2000);
+          // }
         }
 
         if (stopping && isRecording) {
@@ -151,6 +117,7 @@ import Pane from "../components/Pane.astro";
       isRecording = true;
 
       recorder.start(1000);
+      toggleSpinner(false);
     };
 
     recordButton.onclick = () => {
@@ -159,16 +126,13 @@ import Pane from "../components/Pane.astro";
         recordButton.dataset["recording"] = "false";
         recordButton.disabled = true;
         recordButton.style.display = "none";
-        paneElem.setLoadingText("Processing Video");
-        paneElem.setLoading(true);
         videoElem.style.display = "none";
-        onImmediateStop();
+        toggleSpinner(true);
         stopping = true;
       } else {
         recordButton.dataset["recording"] = "true";
+        toggleSpinner(true);
         recordButton.innerText = "Stop Recording";
-        paneElem.setLoadingText("Starting Camera");
-        paneElem.setLoading(true);
         if (recordStream !== null) {
           streamOpened(recordStream);
         } else {
@@ -178,8 +142,6 @@ import Pane from "../components/Pane.astro";
         }
       }
     };
-
-    paneElem.setLoading(false);
   };
 
   window.onload = ready;

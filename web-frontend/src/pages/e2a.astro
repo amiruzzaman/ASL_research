@@ -1,122 +1,97 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import ASLCanvas from "../components/ASLCanvas.astro";
-import Pane from "../components/Pane.astro";
+import { Icon } from "astro-icon/components";
 ---
 
-<Layout class="main" title="English to ASL">
-  <span
+<Layout class="overflow-hidden flex flex-col" title="English to ASL">
+  <button
     id="word-template"
-    data-active="false"
-    data-unknown="false"
     style="display: none;"
-    class="word-chip"></span>
-  <!-- <p> -->
-  <!--   Translate English sentences to ASL signs. Enter the English sentence in the field above and -->
-  <!--   click "Play". The ASL animation will cycle through each word. If a word is unknown, it will be -->
-  <!--   marked red, and will be skipped. Words can be recorded for this page using the <a href="/record" -->
-  <!--     >Record ASL</a -->
-  <!--   > page. -->
-  <!-- </p> -->
-  <div class="app">
-    <div class="input-wrapper">
-      <input
-        id="user-input"
-        aria-label="Enter English Sentence"
-        name="word-input"
-        type="text"
-        placeholder="Enter an English Sentence"
-      />
-      <button id="mic">🎤 Use Audio</button>
-      <button disabled id="submit">Play</button>
+    class="data-active:shadow-accent shadow-sm data-active:btn-accent btn-soft data-unknown:btn-disabled carousel-item btn"
+  ></button>
+  <div class="bg-base-200 shadow-sm w-full p-8 flex flex-col grow overflow-hidden">
+    <div class="items-center justify-center flex flex-col w-full md:flex-row">
+      <div class="join flex flex-row justify-center items-center text-center">
+        <label class="join-item input grow">
+          <input
+            class="grow"
+            id="user-input"
+            name="word-input"
+            type="text"
+            placeholder="Enter an English Sentence"
+          />
+        </label>
+        <button class="join-item btn btn-primary tooltip" data-tip="Submit" id="submit">
+          <Icon name="tabler:send-2" />
+        </button>
+      </div>
+      <div class="divider md:divider-horizontal"></div>
+      <div class="text-center flex flex-row gap-2 items-center justify-center">
+        <button class="btn btn-error group peer tooltip" data-tip="Use Microphone" id="mic">
+          <Icon class="group-data-recording:hidden" name="tabler:microphone" />
+          <Icon class="hidden group-data-recording:inline" name="tabler:player-stop-filled" />
+        </button>
+        <div role="alert" class="hidden peer-disabled:block alert alert-soft alert-error">
+          Microphone Not Supported On Your Browser
+        </div>
+      </div>
     </div>
-    <div id="word-list" class="word-list">
-      <span class="word-placeholder">Gloss Will Appear Here</span>
+    <div class="divider mb-0 mt-2"></div>
+    <div class="flex relative flex-col grow gap-2">
+      <ASLCanvas id="canvas" class="top-[-25px]" />
+      <div
+        id="word-list"
+        class="z-100 hidden has-[button]:flex bg-gray-100 max-h-[20%] p-2 rounded carousel absolute bottom-4 left-12 right-12 gap-2 flex-wrap"
+      >
+      </div>
+      <div
+        class="flex flex-row justify-center items-center gap-2 absolute z-100 top-2 left-0 right-0"
+      >
+        <label
+          class="swap btn btn-soft btn-info tooltip"
+          data-tip="Play/Pause"
+          aria-role="button"
+          aria-label="Toggle Pause"
+        >
+          <input type="checkbox" id="play-pause" />
+          <Icon class="swap-on" name="tabler:player-play-filled" />
+          <Icon class="swap-off" name="tabler:player-pause-filled" />
+        </label>
+        <div
+          data-tip="Playback Speed"
+          class="flex flex-row items-center tooltip tooltip-bottom rounded p-2 gap-2"
+        >
+          <input
+            id="speed"
+            type="range"
+            min="25"
+            max="500"
+            value="400"
+            class="range range-accent range-md"
+          />
+        </div>
+        <button
+          id="reset"
+          class="btn btn-soft btn-error tooltip"
+          data-tip="Reset"
+          aria-role="button"
+          aria-label="Reset"
+        >
+          <Icon name="tabler:refresh" />
+        </button>
+      </div>
     </div>
-    <Pane id="pane" class="wrapper">
-      <ASLCanvas id="canvas" />
-    </Pane>
   </div>
 </Layout>
 
-<style>
-  .main {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .word-list {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--1);
-    width: 100%;
-    box-sizing: border-box;
-    background-color: var(--background-50);
-    border-radius: var(--2);
-    padding: var(--2);
-  }
-
-  .word-placeholder {
-    color: var(--text-700);
-    text-align: center;
-    width: 100%;
-    display: none;
-  }
-
-  .word-placeholder:only-child {
-    display: inline;
-  }
-
-  .word-chip {
-    border-radius: var(--4);
-    padding: var(--1) var(--2);
-    border: dashed 2px var(--accent-50);
-    background-color: var(--accent-100);
-  }
-
-  .word-chip[data-active="true"] {
-    border-style: solid;
-    border-color: var(--primary-200);
-    background-color: var(--primary-100);
-  }
-
-  .word-list > .word-chip[data-unknown="true"] {
-    border-color: red;
-  }
-
-  .app {
-    display: flex;
-    align-items: stretch;
-    justify-content: stretch;
-    flex-direction: column;
-    gap: var(--2);
-  }
-
-  .input-wrapper {
-    display: flex;
-    flex-direction: row;
-    gap: var(--1);
-  }
-
-  .input-wrapper input {
-    flex-grow: 1;
-  }
-
-  .wrapper {
-    width: 100%;
-    height: 40vh;
-  }
-</style>
-
 <script>
-  import { usePane } from "../components/Pane.astro";
   import {
     createRequest,
     renderAsl,
     prepareCanvas,
     type TranslationRequest,
+    type AnimHandle,
   } from "../lib/asl-render";
 
   const buildWordUi = (
@@ -126,11 +101,18 @@ import Pane from "../components/Pane.astro";
   ): HTMLElement[] => {
     return req.words.map((word: string, i) => {
       const wordId = `anim-word-${i}`;
-      const wordUi = template.cloneNode() as HTMLElement;
+      const exists = document.getElementById(wordId);
+      if (exists) {
+        return exists;
+      }
+      const wordUi = template.cloneNode() as HTMLButtonElement;
       wordUi.id = wordId;
       wordUi.style.display = "unset";
       wordUi.textContent = word;
-      wordUi.dataset.unknown = (!(word in req.dataMap)).toString();
+      if (!(word in req.dataMap)) {
+        wordUi.dataset.unknown = "true";
+        wordUi.disabled = true;
+      }
       target.appendChild(wordUi);
       return wordUi as HTMLElement;
     });
@@ -139,7 +121,11 @@ import Pane from "../components/Pane.astro";
   const setWordActive = (word: number, active: boolean) => {
     const elem = document.getElementById(`anim-word-${word}`);
     if (elem) {
-      elem.dataset.active = active.toString();
+      if (active) {
+        elem.dataset.active = "true";
+      } else {
+        elem.removeAttribute("data-active");
+      }
     }
   };
 
@@ -149,14 +135,91 @@ import Pane from "../components/Pane.astro";
     const wordUiTemplate = document.getElementById("word-template")!;
     const wordList = document.getElementById("word-list")!;
     const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
-    const pane = usePane(document.getElementById("pane")! as HTMLDivElement);
     const recordButton = document.getElementById("mic")! as HTMLButtonElement;
+    const playPause = document.getElementById("play-pause")! as HTMLInputElement;
+    const resetButton = document.getElementById("reset")! as HTMLButtonElement;
+    const speedControl = document.getElementById("speed")! as HTMLInputElement;
+
+    let animHandle: AnimHandle | null = null;
+
+    const calcSpeed = (percent: number) => 1 / (percent / 100);
+
+    let speed = calcSpeed(speedControl.valueAsNumber);
+
+    speedControl.onchange = () => {
+      speed = calcSpeed(speedControl.valueAsNumber);
+      animHandle?.changeSpeed?.(speed);
+    };
+
+    let blockAdding = false;
+
+    const lockPlay = () => {
+      blockAdding = true;
+      submitButton.setAttribute("disabled", "true");
+    };
+
+    const unlockPlay = () => {
+      blockAdding = false;
+      submitButton.removeAttribute("disabled");
+    };
+
+    const playPhrase = async (phrase: string) => {
+      lockPlay();
+      const req = await (animHandle?.addWords ?? createRequest)(phrase);
+
+      const wordUi = buildWordUi(wordUiTemplate, wordList, req);
+
+      if (animHandle === null) {
+        let lastWord = 0;
+        const ctx = prepareCanvas(canvas);
+        animHandle = renderAsl(ctx, req, (i) => {
+          setWordActive(lastWord, false);
+          setWordActive(i, true);
+          lastWord = i;
+        });
+        animHandle.changeSpeed(speed);
+      }
+
+      playPause.onchange = () => {
+        animHandle!.pause(playPause.checked);
+      };
+
+      wordUi.forEach((elem, i) => {
+        elem.onclick = () => {
+          animHandle!.jumpWord(i);
+          playPause.checked = false;
+        };
+      });
+
+      resetButton.onclick = () => {
+        animHandle?.resetWords?.();
+        wordUi.forEach((elem) => {
+          wordList.removeChild(elem);
+        });
+      };
+      unlockPlay();
+    };
+    userInputBox.focus();
+    document.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        submitButton.click();
+      }
+    };
+
+    submitButton.onclick = async () => {
+      const input = userInputBox.value.trim();
+      if (input.length === 0) return;
+
+      userInputBox.value = "";
+      playPhrase(input);
+    };
 
     if (!("webkitSpeechRecognition" in window)) {
-      recordButton.style.display = "none";
+      recordButton.disabled = true;
     } else {
       // @ts-expect-error Checked Above
       const recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
       recognition.lang = "en-US";
       let transcript = "";
 
@@ -167,62 +230,31 @@ import Pane from "../components/Pane.astro";
         for (let i = e.resultIndex; i < e.results.length; ++i) {
           if (e.results[i].isFinal) {
             transcript += e.results[i][0].transcript;
-            console.debug(transcript);
+            if (!blockAdding) {
+              playPhrase(transcript);
+              transcript = "";
+            }
           }
         }
       };
 
-      recognition.onend = () => {
-        userInputBox.value = transcript;
-        transcript = "";
-        recordButton.innerText = "Use Audio";
-        recordButton.disabled = false;
-      };
+      let started = false;
 
       recordButton.onclick = async () => {
-        recordButton.innerText = "Recording";
-        recordButton.disabled = true;
-        recognition.start();
+        started = !started;
+        if (started) {
+          recognition.start();
+          recordButton.setAttribute("data-tip", "Stop Recording");
+          recordButton.setAttribute("data-recording", "true");
+          submitButton.setAttribute("disabled", "true");
+        } else {
+          recognition.stop();
+          recordButton.setAttribute("data-tip", "Use Microphone");
+          recordButton.removeAttribute("data-recording");
+          submitButton.removeAttribute("disabled");
+        }
       };
     }
-
-    const ctx = prepareCanvas(canvas);
-    submitButton.onclick = async () => {
-      const input = userInputBox.value.trim();
-      if (input.length === 0) return;
-
-      recordButton.style.display = "none";
-      submitButton.style.display = "none";
-      userInputBox.style.display = "none";
-      pane.setLoading(true);
-
-      const req = await createRequest(input, (progress) => {
-        pane.setLoadingText(`Fetching Words (${progress.currentWord}/${progress.totalWords})`);
-      });
-      pane.setLoadingText("Preparing");
-      buildWordUi(wordUiTemplate, wordList, req);
-      let lastWord = 0;
-      renderAsl(ctx, req, (i) => {
-        setWordActive(lastWord, false);
-        setWordActive(i, true);
-        lastWord = i;
-      });
-      pane.setLoading(false);
-      submitButton.removeAttribute("disabled");
-      submitButton.textContent = "Restart";
-      submitButton.style.display = "";
-      submitButton.style.margin = "auto";
-      submitButton.onclick = () => {
-        window.location.reload();
-      };
-    };
-    submitButton.removeAttribute("disabled");
-    userInputBox.focus();
-    document.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        submitButton.click();
-      }
-    };
   };
 
   window.onload = ready;

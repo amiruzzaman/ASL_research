@@ -39,11 +39,26 @@
     flakelight ./. {
       inherit inputs;
       pname = "asl-research";
-      systems = ["x86_64-linux" "aarch64-darwin"];
-      formatters = {
-        "*.nix" = "alejandra .";
-        "*.py" = "ruff format";
-        "*.{ts,css,astro,json,mjs}" = "prettier --write web-frontend";
+      systems = [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
+      formatters = pkgs: let
+        prettier = "${pkgs.nodePackages.prettier}/bin/prettier --write .";
+        alejandra = "${pkgs.alejandra}/bin/alejandra .";
+        just = "${pkgs.just}/bin/just --fmt --unstable";
+        ruff = "${pkgs.ruff}/bin/ruff format -n .";
+      in {
+        "justfile" = just;
+        "*.nix" = alejandra;
+        "*.js" = prettier;
+        "*.ts" = prettier;
+        "*.jsx" = prettier;
+        "*.tsx" = prettier;
+        "*.md" = prettier;
+        "*.json" = prettier;
+        "*.astro" = prettier;
+        "*.py" = ruff;
       };
       nixpkgs.config = {
         cudaSupport = false;

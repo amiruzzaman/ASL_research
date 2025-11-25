@@ -111,17 +111,9 @@ def rt_a2e():
     ext = VIDEO_TYPES.get(request.content_type)
     if ext is not None:
         stream = request.data
-        cap = iio.imiter(stream, plugin="pyav", extension=ext)
-        sequence = []
-        buf = []
-        for frame in cap:
-            buf.append(frame)
-            if len(buf) == 30:
-                # id, word = asl_to_english.translate_sign(buf)
-                sequence.append(buf)
-                buf = []
-
-        words = asl_to_english.translate(sequence[1:])
+        _cap = iio.imiter(stream, plugin="pyav", extension=ext)
+        # TODO: When we integrate with Alex
+        words = ["not", "real", "response"]
         return Response(msgpack.packb(words), mimetype="application/x-msgpack")
     else:
         return Response("Expected WEBM or MP4 video!"), 415

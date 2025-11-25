@@ -1,6 +1,8 @@
 ---
 import type { HTMLAttributes } from "astro/types";
-import "../styles/style.css";
+import { Icon } from "astro-icon/components";
+
+import "../styles/global.css";
 
 export interface Props extends HTMLAttributes<"main"> {
   title: string;
@@ -8,6 +10,12 @@ export interface Props extends HTMLAttributes<"main"> {
 
 const { title, class: className, ...rest } = Astro.props;
 const desc = "Convert ASL to English and vice versa by recording yourself.";
+
+const navLinks = {
+  "English to ASL": ["tabler:speakerphone", "/e2a"],
+  "Record ASL": ["tabler:video-plus", "/record"],
+  "ASL to English": ["tabler:hand-stop", "/a2e"],
+};
 ---
 
 <!doctype html>
@@ -23,67 +31,42 @@ const desc = "Convert ASL to English and vice versa by recording yourself.";
     <meta property="og:site_name" content="ASL Research Project" />
   </head>
 
-  <body>
-    <header>
-      <nav class="container colrow-md">
-        <a class="home-link colrow-md" href="/">
-          <img class="logo" src="/favicon.svg" alt="A rainbow colored hand waving" />
-          ASL Research
-        </a>
-        <a href="/e2a">English To ASL</a>
-        <a href="/record">Record ASL</a>
-        <a href="/a2e">ASL To English</a>
+  <body class="px-12 mx-auto flex flex-col min-h-screen max-h-screen">
+    <header class="mb-4">
+      <nav class="navbar bg-base-100 shadow-sm">
+        <div class="navbar-start">
+          <a class="btn btn-soft btn-xl text-xl p-2 tooltip tooltip-right" data-tip="Home" href="/">
+            <img class="max-h-full" src="/favicon.svg" alt="A rainbow colored hand waving" />
+          </a>
+        </div>
+        <div class="navbar-center flex gap-4">
+          {
+            Object.entries(navLinks).map(([title, [icon, href]]) => (
+              <a
+                href={href}
+                class="btn btn-xl text-xl btn-soft tooltip tooltip-bottom"
+                data-tip={title}
+              >
+                <Icon class="text-xl" name={icon} />
+              </a>
+            ))
+          }
+        </div>
+        <div class="navbar-end">
+          <a
+            class="btn btn-soft btn-xl text-xl tooltip tooltip-left"
+            data-tip="GitHub Repo"
+            target="_blank"
+            href="https://github.com/amiruzzaman/ASL_research"
+          >
+            <Icon class="text-xl" name="tabler:brand-github" />
+          </a>
+        </div>
       </nav>
     </header>
-    <main class:list={["container", className]} {...rest}>
-      <h1>{title}</h1>
+    <main class:list={["grow", className]} {...rest}>
       <slot />
     </main>
-    <footer>
-      <a target="_blank" href="https://github.com/amiruzzaman/ASL_research">GitHub</a>
-    </footer>
+    <footer class="h-10"></footer>
   </body>
 </html>
-
-<style>
-  nav {
-    padding: var(--small) 0;
-    border-bottom: solid 2px var(--accent-100);
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--3);
-  }
-
-  nav > a:first-child {
-    font-size: var(--2);
-    font-weight: bold;
-  }
-
-  a.home-link {
-    display: flex;
-    align-items: center;
-    gap: var(--1);
-  }
-
-  main {
-    flex-grow: 1;
-  }
-
-  img.logo {
-    width: var(--4);
-    height: var(--4);
-    padding: 5px;
-    background-color: black;
-    border-radius: 10%;
-  }
-
-  footer {
-    display: flex;
-    flex-direction: row;
-    gap: var(--3);
-    padding: var(--2);
-    border-top: solid 2px var(--accent-100);
-    justify-content: center;
-  }
-</style>
