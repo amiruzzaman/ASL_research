@@ -1,4 +1,4 @@
-from ml.dataloaders.alsg_dataloader import load_alsg_dataset
+from ml.dataloaders.aslg_dataloader import load_alsg_dataset
 from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
 import warnings
 import argparse
@@ -33,7 +33,7 @@ def inference(args):
         model.load_state_dict(checkpoint["model_state_dict"])
 
     model.eval()
-
+    
     while True:
         print("~~ Translate English to ASL Gloss Sentence ~~")
         sequence = input("ASL Sequence: ")

@@ -9,7 +9,7 @@ import torch.optim as optim
 
 from tqdm import tqdm
 
-from ml.models.asl_to_english_v1.sign_to_gloss.model import SignToGlossModel
+from ml.models.asl_to_english_v1.sign_to_gloss_lstm.model import SignToGlossModel
 from ml.utils.transformer import create_mask
 from ml.utils.transformer import generate_square_subsequent_mask
 

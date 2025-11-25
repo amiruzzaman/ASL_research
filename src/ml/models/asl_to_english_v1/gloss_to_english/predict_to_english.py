@@ -1,4 +1,4 @@
-from ml.dataloaders.alsg_dataloader import load_alsg_dataset
+from ml.dataloaders.aslg_dataloader import load_alsg_dataset
 from ml.models.asl_to_english_v1.gloss_to_english.model import TranslatorModel
 import warnings
 import argparse

@@ -36,14 +36,14 @@ df.drop_duplicates(subset='texts', keep="last", inplace=True)
 df.dropna()
 
 # Removing . or ? or ! from glosses and texts column
-df["glosses"] = df["glosses"].str.replace(r'[.?!/,`]+', '', regex=True)
-df["texts"] = df["texts"].str.replace(r'[.?!,/]+', '', regex=True)
+df["glosses"] = df["glosses"].str.replace(r'[.?!/,`]+', ' ', regex=True)
+df["texts"] = df["texts"].str.replace(r'[.?!,/]+', ' ', regex=True)
 
 # Removing samples with (any text)
 df = df[~df["glosses"].str.contains(r"\(.+\)")]
 
 # Removing special tags from samples
-df["glosses"] = df["glosses"].str.replace(r'DESC-RE\s', 'THERE ', regex=True)
+df["glosses"] = df["glosses"].str.replace(r'DESC-RE[^\s]*\s', 'THERE ', regex=True)
 df["glosses"] = df["glosses"].str.replace(r'X-Y\s', 'THEY ', regex=True)
 df["glosses"] = df["glosses"].str.replace(r'DESC-', '', regex=True)
 df["glosses"] = df["glosses"].str.replace(r'X-', '', regex=True)
@@ -55,9 +55,7 @@ df = df[~df["glosses"].str.contains(r'\d+')]
 df["texts"] = df["texts"].str.replace(r'poss', '', regex=True)
 df["glosses"] = df["glosses"].str.replace(r'POSS', '', regex=True)
 
-# Replace accented characters with non accented counterparts
-df["texts"] = df["texts"].apply(lambda s: ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c)))
-
+# Replace accented characters with non accented counterparts\\
 df["glosses"] = df["glosses"].str.replace(r"\s\s+", " ", regex=True)
 df["texts"] = df["texts"].str.replace(r"\s\s+", " ", regex=True)
 
