@@ -30,9 +30,9 @@ import torch.distributed as dist
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-CONFIG_PATH = "configs"
+CONFIG_PATH = os.path.join("src", "ml", "configs")
 
-PROCESSED_PATH = os.path.join("data", "processed", "phoenixweather2014t")
+PROCESSED_PATH = os.path.join("src", "ml", "data", "processed", "phoenixweather2014t")
 # torch.autograd.set_detect_anomaly(True)
 
 
@@ -582,3 +582,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

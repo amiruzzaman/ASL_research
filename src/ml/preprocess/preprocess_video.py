@@ -8,7 +8,7 @@ import cv2
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-PROCESSED_DATA_PATH = os.path.join("data", "processed")
+PROCESSED_DATA_PATH = os.path.join("ml", "data", "processed")
 PROCESSED_VIDEO_PATH = os.path.join(PROCESSED_DATA_PATH, "phoenixweather2014t", "processed_videos")
 FEATURES_PATH = os.path.join(PROCESSED_DATA_PATH, "features")
 

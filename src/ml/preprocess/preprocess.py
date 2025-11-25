@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-EXTERNAL_PATH = os.path.join("data", "external", "phoenixweather2014t")
-PROCESSED_PATH = os.path.join("data", "processed", "phoenixweather2014t")
+EXTERNAL_PATH = os.path.join("src", "data", "external", "phoenixweather2014t")
+PROCESSED_PATH = os.path.join("src", "data", "processed", "phoenixweather2014t")
 VIDEO_PATH = os.path.join(EXTERNAL_PATH, "videos_phoenix", "videos")
 PROCESSED_VIDEO_PATH = os.path.join(PROCESSED_PATH, "processed_videos")
 

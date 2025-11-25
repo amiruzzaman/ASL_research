@@ -6,8 +6,8 @@ import io
 import os
 
 PHOENIX_2014_T_LINK = "https://www.kaggle.com/api/v1/datasets/download/mariusschmidtmengin/phoenixweather2014t-3rd-attempt"
-EXTERNAL_DATA_PATH = os.path.join("data", "external")
-PROCESSED_DATA_PATH = os.path.join("data", "processed")
+EXTERNAL_DATA_PATH = os.path.join("src", "ml", "data", "external")
+PROCESSED_DATA_PATH = os.path.join("src", "ml", "data", "processed")
 
 
 def main():

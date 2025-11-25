@@ -2,7 +2,6 @@ import json
 import os
 
 import pandas as pd
-from pytorchvideo.data.encoded_video import EncodedVideo
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data.dataset import Dataset
@@ -50,7 +49,7 @@ class PhoenixDataset(Dataset):
         self.vocab_path = os.path.join(root_dir, "vocab.json")
         self.video_dir = os.path.join(root_dir, "videos_phoenix", "videos")
         self.processed_video_dir = os.path.join(root_dir, "processed_videos")
-
+        
         self.sampling_ratio = sampling_ratio
         self.random_sampling = random_subsampling
         self.masking_ratio = masking_ratio
