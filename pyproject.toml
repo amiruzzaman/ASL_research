@@ -18,6 +18,8 @@ dependencies = [
     "spacy>=3.8.4",
     "torch>=2.6.0",
     "tqdm>=4.67.1",
+    "torcheval",
+    "pandas",
 ]
 
 [project.scripts]
