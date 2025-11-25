@@ -3,7 +3,7 @@ import type { HTMLAttributes } from "astro/types";
 
 export type Props = HTMLAttributes<"canvas">;
 
-const { ...props } = Astro.props;
+const { class: className, ...props } = Astro.props;
 ---
 
-<canvas class="rounded h-full" {...props}></canvas>
+<canvas class:list={["rounded w-full absolute left-0 right-0", className]} {...props}></canvas>

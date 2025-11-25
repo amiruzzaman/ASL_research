@@ -8,12 +8,12 @@ import { Icon } from "astro-icon/components";
   <button
     id="word-template"
     style="display: none;"
-    class="data-active:shadow-accent shadow-sm btn-lg data-active:btn-accent btn-soft data-unknown:btn-disabled carousel-item btn"
+    class="data-active:shadow-accent shadow-sm data-active:btn-accent btn-soft data-unknown:btn-disabled carousel-item btn"
   ></button>
   <div class="bg-base-200 shadow-sm w-full p-8 flex flex-col grow overflow-hidden">
     <div class="items-center justify-center flex flex-col w-full md:flex-row">
       <div class="join flex flex-row justify-center items-center text-center">
-        <label class="join-item input input-lg grow">
+        <label class="join-item input grow">
           <input
             class="grow"
             id="user-input"
@@ -22,13 +22,13 @@ import { Icon } from "astro-icon/components";
             placeholder="Enter an English Sentence"
           />
         </label>
-        <button class="join-item btn btn-lg btn-primary tooltip" data-tip="Submit" id="submit">
+        <button class="join-item btn btn-primary tooltip" data-tip="Submit" id="submit">
           <Icon name="tabler:send-2" />
         </button>
       </div>
       <div class="divider md:divider-horizontal"></div>
       <div class="text-center flex flex-row gap-2 items-center justify-center">
-        <button class="btn btn-error btn-lg group peer tooltip" data-tip="Use Microphone" id="mic">
+        <button class="btn btn-error group peer tooltip" data-tip="Use Microphone" id="mic">
           <Icon class="group-data-recording:hidden" name="tabler:microphone" />
           <Icon class="hidden group-data-recording:inline" name="tabler:player-stop-filled" />
         </button>
@@ -37,19 +37,19 @@ import { Icon } from "astro-icon/components";
         </div>
       </div>
     </div>
-    <div class="divider py-2"></div>
+    <div class="divider mb-0 mt-2"></div>
     <div class="flex relative flex-col grow gap-2">
-      <ASLCanvas id="canvas" />
+      <ASLCanvas id="canvas" class="top-[-25px]" />
       <div
         id="word-list"
-        class="hidden has-[button]:flex bg-[#00000066] max-h-[20%] p-2 rounded carousel absolute bottom-4 left-12 right-12 gap-2 flex-wrap"
+        class="z-100 hidden has-[button]:flex bg-gray-100 max-h-[20%] p-2 rounded carousel absolute bottom-4 left-12 right-12 gap-2 flex-wrap"
       >
       </div>
       <div
         class="flex flex-row justify-center items-center gap-2 absolute z-100 top-2 left-0 right-0"
       >
         <label
-          class="swap btn btn-soft btn-info btn-lg tooltip"
+          class="swap btn btn-soft btn-info tooltip"
           data-tip="Play/Pause"
           aria-role="button"
           aria-label="Toggle Pause"
@@ -73,7 +73,7 @@ import { Icon } from "astro-icon/components";
         </div>
         <button
           id="reset"
-          class="btn btn-soft btn-error btn-lg tooltip"
+          class="btn btn-soft btn-error tooltip"
           data-tip="Reset"
           aria-role="button"
           aria-label="Reset"

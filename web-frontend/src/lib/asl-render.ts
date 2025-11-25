@@ -126,6 +126,7 @@ type AnimationContext = {
 export type RenderContext = {
   canvas: HTMLCanvasElement;
   dimensions: [number, number];
+  scale: number,
   anim?: AnimationContext;
 };
 
@@ -204,6 +205,8 @@ const renderFrame = (ctx: RenderContext, canvas: CanvasRenderingContext2D, frame
 
 const prepareAnim = (ctx: RenderContext, animContext: AnimationContext) => {
   const canvasCtx = ctx.canvas.getContext("2d")!;
+
+  canvasCtx.scale(ctx.scale, ctx.scale);
 
   let wordJumpReq: number | null = null;
   let needToTransitionAfterUnpause = false;
@@ -325,23 +328,29 @@ export const prepareCanvas = (canvas: HTMLCanvasElement): RenderContext => {
   const width = parent.offsetWidth;
   const height = parent.offsetHeight;
 
-  canvas.setAttribute("width", `${Math.floor(width)}px`);
-  canvas.setAttribute("height", `${Math.floor(height)}px`);
-
   parent.appendChild(canvas);
+
+  canvas.style.width = width + "px";
+  canvas.style.height = height + "px";
+
+  const scale = window.devicePixelRatio;
+  canvas.width = width * scale;
+  canvas.height = height * scale;
 
   const ctx = {
     canvas,
-    dimensions: [width, height],
+    scale,
+    dimensions: [width * scale, height * scale],
   } as RenderContext;
 
   const onParentResize = (entries: ResizeObserverEntry[]) => {
     const lastItem = entries[entries.length - 1];
     const { inlineSize: width, blockSize: height } = lastItem.contentBoxSize[0];
-    canvas.setAttribute("width", `${Math.floor(width)}px`);
-    canvas.setAttribute("height", `${Math.floor(height)}px`);
-
-    ctx.dimensions = [width, height];
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    ctx.dimensions = [width * scale, height * scale];
   };
 
   const observer = new ResizeObserver(onParentResize);
@@ -354,12 +363,10 @@ export const addToContext =
   (animContext: AnimationContext) =>
   async (phrase: string): Promise<TranslationRequest> => {
     const newReq: TranslationRequest = await createRequest(phrase, () => {}, animContext.req);
-    const oldLen = animContext.req.words.length;
+    // const oldLen = animContext.req.words.length;
     animContext.req.dataMap = { ...animContext.req.dataMap, ...newReq.dataMap };
     animContext.req.words = [...animContext.req.words, ...newReq.words];
-    if (animContext.paused && animContext.currentWord === oldLen - 1) {
-      animContext.currentWord++;
-      animContext.currentFrame = 0;
+    if (animContext.paused) {
       animContext.paused = false;
     }
     return animContext.req;

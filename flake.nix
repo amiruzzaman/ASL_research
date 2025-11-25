@@ -47,7 +47,7 @@
         prettier = "${pkgs.nodePackages.prettier}/bin/prettier --write .";
         alejandra = "${pkgs.alejandra}/bin/alejandra .";
         just = "${pkgs.just}/bin/just --fmt --unstable";
-        ruff = "${pkgs.ruff}/bin/ruff format .";
+        ruff = "${pkgs.ruff}/bin/ruff format -n .";
       in {
         "justfile" = just;
         "*.nix" = alejandra;
