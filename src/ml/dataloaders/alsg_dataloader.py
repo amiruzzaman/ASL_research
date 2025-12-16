@@ -6,11 +6,14 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+import os
+import pandas as pd
 
+DATASET_PATH = os.path.join("src", "ml", "data", "processed", "aslgpc12", "dataset.csv")
 
 class ASLDataset(Dataset):
     def __init__(
-        self, src_set, trg_set, src_vocab, trg_vocab, src_filters=[], trg_filters=[]
+        self, src_set, trg_set, src_vocab, trg_vocab
     ):
         """
         Custom dataset class for the ASLG-PC12 dataset
@@ -32,8 +35,6 @@ class ASLDataset(Dataset):
         self.src_vocab = src_vocab
         self.trg_vocab = trg_vocab
 
-        self.src_filters = src_filters
-        self.trg_filters = trg_filters
 
     def __len__(self):
         return len(self.src_set)
@@ -53,13 +54,6 @@ class ASLDataset(Dataset):
         """
         src = self.src_set[index]
         trg = self.trg_set[index]
-
-        # Gets rid of certain words in the keywords
-        for filter in self.src_filters:
-            src = src.replace(filter, "")
-
-        for filter in self.trg_filters:
-            trg = trg.replace(filter, "")
 
         # Split sentence of ASL gloss and English text to a list of words (Adds the SOS and EOS also)
         src_words = ["<sos>"] + src.split() + ["<eos>"]
@@ -89,11 +83,8 @@ def build_vocab(dataset, special=["<sos>", "<eos>", "<pad>", "<unk>"], filters=[
 
     # Getting the count of all words in the dataset
     for sentence in tqdm(dataset):
-        for filter in filters:
-            sentence = sentence.replace(filter, "")
-
         count.update(sentence.split())
-
+    
     # Sort the words based on how many times it appears in the dataset (Largest to smallest)
     words = sorted(count.keys(), key=lambda word: count[word], reverse=True)
 
@@ -140,16 +131,12 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse=Fals
         A dataloader that contains the ASL glosses and the English sentences
     """
     enable_progress_bars()
-    filters = ["desc-", "x-"]
 
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
-    aslg_dataset = load_dataset("achrafothman/aslg_pc12", split="train")
-    glosses, texts = zip(
-        *[(pair["gloss"].strip(), pair["text"].strip()) for pair in aslg_dataset]
-    )
+    df = pd.read_csv(DATASET_PATH)
 
-    glosses = list(map(lambda x: x.lower(), glosses))
+    glosses = df["glosses"]
     texts = list(map(lambda x: x.lower(), texts))
 
     print("Building the vocab...")
@@ -167,17 +154,17 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse=Fals
 
     if not reverse:
         train_dataset = ASLDataset(
-            gloss_train, english_train, gloss_vocab, text_vocab, src_filters=filters
+            gloss_train, english_train, gloss_vocab, text_vocab
         )
         test_dataset = ASLDataset(
-            gloss_test, english_test, gloss_vocab, text_vocab, src_filters=filters
+            gloss_test, english_test, gloss_vocab, text_vocab
         )
     else:
         train_dataset = ASLDataset(
-            english_train, gloss_train, text_vocab, gloss_vocab, trg_filters=filters
+            english_train, gloss_train, text_vocab, gloss_vocab
         )
         test_dataset = ASLDataset(
-            english_test, gloss_test, text_vocab, gloss_vocab, trg_filters=filters
+            english_test, gloss_test, text_vocab, gloss_vocab
         )
 
     train_dl = DataLoader(
