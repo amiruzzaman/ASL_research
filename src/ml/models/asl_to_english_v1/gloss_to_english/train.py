@@ -16,10 +16,15 @@ from ml.utils.transformer import (
     create_mask,
 )
 
+import evaluate
+
 # Train on the GPU if possible
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 warnings.filterwarnings("ignore")
 
+# bleu_metric = evaluate.load("bleu")
+# rouge_metric = evaluate.load("rouge")
+print(DEVICE)
 
 def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
     # Set model to training mode
@@ -76,9 +81,11 @@ def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
     return losses
 
 
-def validate(model, data, criterion, src_vocab, trg_vocab):
+def validate(model, data, criterion, src_vocab, src_id, trg_vocab, trg_id):
     losses, correct, wrong = 0, 0, 0
     model.eval()
+    predicted_sentences = []
+    actual_sentences = []
     # Go through batches in the epoch
     for src, trg in tqdm(data, desc="Validating"):
         # Convert source and target inputs into its respective device's tensors (CPU or GPU)
@@ -92,7 +99,7 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
         src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(
             src, trg_input, trg_vocab["<pad>"], DEVICE
         )
-
+        
         # Feed the inputs through the translation model
         # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model
         # instead of the model's output in the prior timestep
@@ -120,22 +127,51 @@ def validate(model, data, criterion, src_vocab, trg_vocab):
         # Calculate if each sequence in each batch is equal to the expected sequence
         # correct += (out.argmax(dim=2) == trg[:, 1:]).all(dim=1).sum().item()
         # wrong += (out.argmax(dim=2) != trg[:, 1:]).all(dim=1).sum().item()
-
+        
         # Calculate if each word in all batches are equal to the expected sequence
         correct += (actual.argmax(dim=1) == expected).sum().item()
         wrong += (actual.argmax(dim=1) != expected).sum().item()
-
+        
+        # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string
+        predicted = translate(src, model, src_vocab, trg_vocab, trg_id, src_mask)
+        actual = [decode(tokens, trg_id) for tokens in trg]
+        
+        predicted_sentences.extend(predicted)
+        actual_sentences.extend(actual)
+        
+    print(f"Predicted sentences: {predicted_sentences}")
+    print(f"Actual sentences: {actual_sentences}\n")
     losses /= len(data)
     correct /= correct + wrong
-
+    
     return losses, correct
 
 
+def translate(sentence, model, src_vocab, trg_vocab, trg_id, src_mask):
+    num_tokens = sentence.shape[1]
+    
+    translated_tokens = model.greedy_decode(
+        sentence, src_mask, src_vocab, trg_vocab, device=DEVICE
+    )
+
+    return [decode(tokens, trg_id) for tokens in translated_tokens]
+    
+def decode(tokens, trg_id):
+    return (" ".join([trg_id[token] for token in tokens.tolist()]).replace("<sos>", "").replace("<eos>", "").replace("<pad>", "").strip())
+
+def bleu_score(predicted, actual):
+    bleu_results = bleu_metric.compute(predictions=predicted, references=actual)
+    return bleu_results['bleu'] * 100
+    
+def rouge_score(predicted, actual):
+    rouge_results = rouge_metric.compute(predictions=predicted, references=actual)
+    return rouge_results['rouge1'], rouge_results['rougeL']
+    
 def train(args):
     train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_alsg_dataset(
         args.batch, reverse=args.reverse
     )
-
+    
     # Creating the translation (Transformer) model
     EPOCHS = args.epochs
     curr_epoch = 1
@@ -186,9 +222,9 @@ def train(args):
 
     # Calculate starting performance of the model
     valid_loss, correct = (
-        validate(model, train_dl, criterion, gloss_vocab, text_vocab)
+        validate(model, test_dl, criterion, gloss_vocab, gloss_id, text_vocab, text_id)
         if not args.reverse
-        else validate(model, train_dl, criterion, text_vocab, gloss_vocab)
+        else validate(model, test_dl, criterion, text_vocab, text_id, gloss_vocab, gloss_id)
     )
 
     print(
@@ -210,9 +246,9 @@ def train(args):
 
         # Goes through the validation dataset
         valid_loss, correct = (
-            validate(model, test_dl, criterion, gloss_vocab, text_vocab)
+            validate(model, test_dl, criterion, gloss_vocab, gloss_id, text_vocab, text_id)
             if not args.reverse
-            else validate(model, test_dl, criterion, text_vocab, gloss_vocab)
+            else validate(model, test_dl, criterion, text_vocab, text_id, gloss_vocab, gloss_id)
         )
 
         loss_history.append(valid_loss)
@@ -246,6 +282,7 @@ def train(args):
         )
 
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ASLGlossModel")
 
@@ -258,7 +295,7 @@ if __name__ == "__main__":
     parser.add_argument("--adams_ep", type=float, default=1e-9)
     parser.add_argument("--factor", type=float, default=0.9)
     parser.add_argument("--patience", type=int, default=10)
-    parser.add_argument("--weight_decay", type=float, default=1e-9)
+    parser.add_argument("--weight_decay", type=float, default=1e-5)
 
     # Translation Model Arguments
     parser.add_argument("--dmodel", type=int, default=512)

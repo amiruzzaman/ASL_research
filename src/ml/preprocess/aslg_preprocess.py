@@ -31,10 +31,10 @@ def preprocess():
     df["gloss"] = df["gloss"].str.replace(u'\uFEFF', '')
     
     # Dropping duplicates and n/a rows
-    df.drop_duplicates(inplace=True)
-    df.drop_duplicates(subset='gloss', keep="last", inplace=True)
-    df.drop_duplicates(subset='text', keep="last", inplace=True)
-    df.dropna()
+    df = df.drop_duplicates()
+    df = df.drop_duplicates(subset='gloss', keep="last")
+    df = df.drop_duplicates(subset='text', keep="last")
+    df = df.dropna()
     
     # Removing . or ? or ! from glosses and texts column
     df["gloss"] = df["gloss"].str.replace(r'[.?!/,`]+', ' ', regex=True)
@@ -62,9 +62,14 @@ def preprocess():
     
     df["text"] = df["text"].apply(lambda s: s.strip())
     df["gloss"] = df["gloss"].apply(lambda s: s.strip())
+
+    df = df.dropna()
+    df = df[df['gloss'].astype(bool)]  
+    df = df[df['text'].astype(bool)]  
     
     # Save dataset
     df.to_csv(os.path.join(SAVE_PATH, "dataset.csv"), index=False)
+    print(len(df.iloc[26256-1]["gloss"]))
 
 if __name__ == "__main__":
     preprocess()

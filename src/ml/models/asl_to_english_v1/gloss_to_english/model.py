@@ -169,33 +169,37 @@ class TranslatorModel(nn.Module):
         self.eval()
 
         # Convert the sequences from (Sequence) to (Batch, Sequence)
-        src = src.unsqueeze(0).to(device)
+        # src = src.unsqueeze(0).to(device)
 
         # Feed the source sequence and its mask into the transformer's encoder
         memory = self.encode(src, src_mask)
 
         # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
         sequence = (
-            torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(device)
+            torch.ones(src.shape[0], max_len)
+            .fill_(trg_vocab["<pad>"])
+            .type(torch.long)
+            .to(src.device)
         )
+        # Fill first column (or the beginning of the sequences) with <SOS> tokens
+        sequence[:, 0] = trg_vocab["<sos>"]
+        
+        
+        for t in range(1, max_len):
+            out = sequence[:, :t]
 
-        for _ in range(max_len):
             mask = (
-                generate_square_subsequent_mask(sequence.shape[-1], device)
+                generate_square_subsequent_mask(t, device)
                 .type(torch.bool)
                 .to(device)
             )
-
+            
             # Feeds the target and retrieves a vector (Batch, Sequence Size, Target Vocab Size)
-            out = self.decode(sequence, memory, mask)
-            _, next_word = torch.max(out, dim=1)
-            next_word = torch.tensor([[next_word.item()]]).to(device=device)
-
+            out = self.decode(out, memory, mask)
+            next_word = torch.argmax(out[:, -1], dim=-1).to(src.device)
+            
             # Concatenate the predicted token to the output sequence
-            sequence = torch.cat((sequence, next_word), dim=1)
-
-            if next_word == trg_vocab["<eos>"]:
-                break
+            sequence[:, t] = next_word
 
         return sequence
 
@@ -250,7 +254,7 @@ class TranslatorModel(nn.Module):
                     new_score = score + token_prob
 
                     new_candidates.append((new_candidate, new_score))
-
+            
             candidates = sorted(
                 new_candidates, key=lambda candidate: candidate[1], reverse=True
             )

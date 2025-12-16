@@ -77,14 +77,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="ASLGlossModel")
 
     parser.add_argument("--reverse", action="store_true")
-    parser.add_argument("-e", "--epochs", type=int, default=10)
+    parser.add_argument("-e", "--epochs", type=int, default=100)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--model_path", type=str)
     parser.add_argument("-b", "--batch", type=int, default=32)
     parser.add_argument("--adams_ep", type=float, default=1e-9)
     parser.add_argument("--factor", type=float, default=0.9)
     parser.add_argument("--patience", type=int, default=10)
-    parser.add_argument("--weight_decay", type=float, default=1e-9)
+    parser.add_argument("--weight_decay", type=float, default=1e-5)
 
     # Translation Model Arguments
     parser.add_argument("--dmodel", type=int, default=512)

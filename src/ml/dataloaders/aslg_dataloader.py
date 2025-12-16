@@ -52,13 +52,16 @@ class ASLDataset(Dataset):
             Two sequence of tokens for the glosses and sentences with an <SOS> token added to the start
             and an <EOS> token added to the end.
         """
+        
         src = self.src_set[index]
         trg = self.trg_set[index]
+
+        
 
         # Split sentence of ASL gloss and English text to a list of words (Adds the SOS and EOS also)
         src_words = ["<sos>"] + src.split() + ["<eos>"]
         trg_words = ["<sos>"] + trg.split() + ["<eos>"]
-
+        
         # Convert those list of words to tokens/indices in the vocab
         src_tokens = torch.tensor([self.src_vocab[word] for word in src_words])
         trg_tokens = torch.tensor([self.trg_vocab[word] for word in trg_words])
@@ -66,7 +69,7 @@ class ASLDataset(Dataset):
         return src_tokens, trg_tokens
 
 
-def build_vocab(dataset, special=["<sos>", "<eos>", "<pad>", "<unk>"], filters=[]):
+def build_vocab(dataset, special=["<sos>", "<eos>", "<pad>", "<unk>"]):
     """
     Builds the vocabulary for a dataset by splitting each sentence by their words and then
     Create two dictionaries, id_to_word and word_to_id.
@@ -90,11 +93,11 @@ def build_vocab(dataset, special=["<sos>", "<eos>", "<pad>", "<unk>"], filters=[
 
     # Combine the special words (SOS, EOS, etc) with the words from the dataset
     vocab = special + words
-
+    
     # Pairs word with their index in the vocab list (and vice versa)
     word_to_id = {word: id for id, word in enumerate(vocab)}
     id_to_word = {id: word for id, word in enumerate(vocab)}
-
+        
     return word_to_id, id_to_word
 
 
@@ -136,18 +139,18 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse=Fals
     print("Loading in Dataset...")
     df = pd.read_csv(DATASET_PATH)
 
-    glosses = df["glosses"]
-    texts = list(map(lambda x: x.lower(), texts))
-
+    glosses = df["gloss"].tolist()
+    texts = df["text"].tolist()
+    
     print("Building the vocab...")
-    gloss_vocab, gloss_id = build_vocab(glosses, filters=filters)
+    gloss_vocab, gloss_id = build_vocab(glosses)
     text_vocab, text_id = build_vocab(texts)
 
     # Split data into a training and validation set
     gloss_train, gloss_test, english_train, english_test = train_test_split(
         glosses, texts, random_state=29, test_size=test_size, shuffle=True
     )
-
+        
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
     train_dataset, test_dataset = None, None
@@ -166,7 +169,7 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse=Fals
         test_dataset = ASLDataset(
             english_test, gloss_test, text_vocab, gloss_vocab
         )
-
+    
     train_dl = DataLoader(
         train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )

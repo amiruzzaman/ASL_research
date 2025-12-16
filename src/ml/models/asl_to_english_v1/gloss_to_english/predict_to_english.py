@@ -64,7 +64,7 @@ def inference(args):
                 max_len=num_tokens + 5,
                 temperature=0.5,
             ).flatten()
-
+        
         translated = (
             " ".join([text_id[token] for token in translated_tokens.tolist()])
             .replace("<sos>", "")
