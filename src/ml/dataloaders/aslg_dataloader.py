@@ -137,7 +137,7 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse=Fals
 
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
-    df = pd.read_csv(DATASET_PATH)
+    df = pd.read_csv(DATASET_PATH).head(n=20)
 
     glosses = df["gloss"].tolist()
     texts = df["text"].tolist()

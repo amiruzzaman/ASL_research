@@ -26,7 +26,7 @@ def create_mask(src, trg, pad_idx, device):
     # Generate the mask
     tgt_mask = generate_square_subsequent_mask(trg_seq_len, device)
     src_mask = torch.zeros((src_seq_len, src_seq_len), device=device).type(torch.bool)
-
+    
     # Overlay the mask over the original input
     src_padding_mask = src == pad_idx
     tgt_padding_mask = trg == pad_idx

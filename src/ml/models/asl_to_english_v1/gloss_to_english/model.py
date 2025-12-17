@@ -130,7 +130,7 @@ class TranslatorModel(nn.Module):
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
 
-    def encode(self, src, src_mask):
+    def encode(self, src, src_mask=None, src_padding_mask=None):
         """
         Feeds the source sequence along with its mask into the encoder to retrieve the fixed length encoding vector
         used for memory during multiheaded attention in the decoder
@@ -144,11 +144,11 @@ class TranslatorModel(nn.Module):
         """
 
         src_pos = self.pos_encoding(self.src_embedding(src))
-        out = self.transformer.encoder(src_pos, src_mask)
+        out = self.transformer.encoder(src_pos, mask=src_mask, src_key_padding_mask=src_padding_mask)
 
         return out
 
-    def decode(self, trg, memory, trg_mask):
+    def decode(self, trg, memory, src_padding_mask=None, trg_mask=None, trg_padding_mask=None):
         """
         Feeds the target sequence along with its mask and memory created from the encoders
 
@@ -161,18 +161,18 @@ class TranslatorModel(nn.Module):
         """
 
         trg_pos = self.pos_encoding(self.trg_embedding(trg))
-        out = self.transformer.decoder(trg_pos, memory, trg_mask)
+        out = self.transformer.decoder(trg_pos, memory, tgt_mask=trg_mask, memory_key_padding_mask=src_padding_mask, tgt_key_padding_mask=trg_padding_mask)
 
         return self.linear(out[:, -1])
 
-    def greedy_decode(self, src, src_mask, src_vocab, trg_vocab, device, max_len=100):
+    def greedy_decode(self, src, src_mask, src_padding_mask, src_vocab, trg_vocab, device, max_len=100):
         self.eval()
 
         # Convert the sequences from (Sequence) to (Batch, Sequence)
         # src = src.unsqueeze(0).to(device)
 
         # Feed the source sequence and its mask into the transformer's encoder
-        memory = self.encode(src, src_mask)
+        memory = self.encode(src, src_mask=src_mask, src_padding_mask=src_padding_mask)
 
         # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
         sequence = (
@@ -187,18 +187,27 @@ class TranslatorModel(nn.Module):
         
         for t in range(1, max_len):
             out = sequence[:, :t]
-
+            trg_padding_mask = out == trg_vocab["<pad>"]
+            
             mask = (
                 generate_square_subsequent_mask(t, device)
                 .type(torch.bool)
                 .to(device)
             )
-            
+
             # Feeds the target and retrieves a vector (Batch, Sequence Size, Target Vocab Size)
-            out = self.decode(out, memory, mask)
-            next_word = torch.argmax(out[:, -1], dim=-1).to(src.device)
-            
+            out = self.decode(out, memory, src_padding_mask=src_padding_mask, trg_mask=mask, trg_padding_mask=trg_padding_mask)
+            next_word = torch.argmax(out, dim=-1).to(src.device)
+            next_word = torch.where(
+                (sequence == trg_vocab["<eos>"]).any(dim=-1),
+                trg_vocab["<eos>"],
+                next_word,
+            )
+
             # Concatenate the predicted token to the output sequence
+            if (next_word == trg_vocab["<eos>"]).all():
+                break
+                
             sequence[:, t] = next_word
 
         return sequence
