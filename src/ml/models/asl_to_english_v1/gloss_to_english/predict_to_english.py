@@ -40,7 +40,7 @@ def inference(args):
 
         if sequence.lower() == "<stop>":
             break
-
+                
         # Turns the string input into a tensor containing tokens
         tokens = convert_to_tokens(sequence, gloss_vocab, DEVICE)
 

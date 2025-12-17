@@ -121,7 +121,7 @@ def collate_fn(batch):
     )
 
 
-def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse=False):
+def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=False):
     """
     Loads the ASLG-PC12 Dataset and creates a Dataloader for it.
 
@@ -137,7 +137,7 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse=Fals
 
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
-    df = pd.read_csv(DATASET_PATH).head(n=20)
+    df = pd.read_csv(DATASET_PATH)
 
     glosses = df["gloss"].tolist()
     texts = df["text"].tolist()
@@ -145,36 +145,56 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.1, reverse=Fals
     print("Building the vocab...")
     gloss_vocab, gloss_id = build_vocab(glosses)
     text_vocab, text_id = build_vocab(texts)
-
-    # Split data into a training and validation set
-    gloss_train, gloss_test, english_train, english_test = train_test_split(
+    
+    # Split data into a training, validation, and test set
+    gloss_train, gloss_test, text_train, text_test = train_test_split(
         glosses, texts, random_state=29, test_size=test_size, shuffle=True
     )
+
+
+    gloss_valid, gloss_test, text_valid, text_test = train_test_split(
+        gloss_test, text_test, random_state=29, test_size=0.5, shuffle=True
+    )
+
+    print(len(gloss_train))
+    print(len(gloss_valid))
+    print(len(gloss_test))
         
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
-    train_dataset, test_dataset = None, None
+    train_dataset, valid_dataset, test_dataset = None, None, None
 
     if not reverse:
         train_dataset = ASLDataset(
-            gloss_train, english_train, gloss_vocab, text_vocab
+            gloss_train, text_train, gloss_vocab, text_vocab
+        )
+        valid_dataset = ASLDataset(
+            gloss_valid, text_valid, gloss_vocab, text_vocab
         )
         test_dataset = ASLDataset(
-            gloss_test, english_test, gloss_vocab, text_vocab
+            gloss_test, text_test, gloss_vocab, text_vocab
         )
+    
     else:
         train_dataset = ASLDataset(
-            english_train, gloss_train, text_vocab, gloss_vocab
+            text_train, gloss_train, text_vocab, gloss_vocab
+        )
+        valid_dataset = ASLDataset(
+            text_valid, gloss_valid, text_vocab, gloss_vocab
         )
         test_dataset = ASLDataset(
-            english_test, gloss_test, text_vocab, gloss_vocab
+            text_test, gloss_test, text_vocab, gloss_vocab
         )
     
     train_dl = DataLoader(
         train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )
+    valid_dl = DataLoader(
+        valid_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
+    )
+
     test_dl = DataLoader(
         test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )
 
-    return train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id
+    return train_dl, valid_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id

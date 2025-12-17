@@ -81,7 +81,7 @@ def train_epoch(model, data, optimizer, criterion, src_vocab, trg_vocab, epoch):
 
 
 def validate(model, data, criterion, src_vocab, src_id, trg_vocab, trg_id):
-    losses, correct, wrong = 0, 0, 0
+    losses = 0
     model.eval()
     predicted_sentences = []
     actual_sentences = []
@@ -121,32 +121,20 @@ def validate(model, data, criterion, src_vocab, src_id, trg_vocab, trg_id):
         # For the loss function, the reason why the expected is the target sequence offsetted forward by one is
         # because it allows us to compare the next word the model predicts to the actual next word in the sequence
         loss = criterion(actual, expected)
-        losses += loss.item()
-        
-        # Calculate if each sequence in each batch is equal to the expected sequence
-        # correct += (out.argmax(dim=2) == trg[:, 1:]).all(dim=1).sum().item()
-        # wrong += (out.argmax(dim=2) != trg[:, 1:]).all(dim=1).sum().item()
-        
-        # Calculate if each word in all batches are equal to the expected sequence
-        # correct += (actual.argmax(dim=1) == expected).sum().item()
-        # wrong += (actual.argmax(dim=1) != expected).sum().item()
+        losses += loss.item() * actual.size(0)
         
         # Translate the series of ASL gloss tokens into a series of English tokens and then convert that series into a string
         predicted = translate(src, model, src_vocab, trg_vocab, trg_id, src_mask, src_padding_mask)
         actual = [decode(tokens, trg_vocab, trg_id) for tokens in trg]
-        
+            
         predicted_sentences.extend(predicted)
         actual_sentences.extend(actual)
         
     bleu = bleu_score(predicted=predicted_sentences, actual=actual_sentences)
     rouge1, rougeL = rouge_score(predicted=predicted_sentences, actual=actual_sentences)
-    losses /= len(data)
-    # correct /= correct + wrong
+    losses /= len(data.dataset)
     
-    # print(predicted_sentences)
-    # print(actual_sentences)
-    # print()
-    return losses, correct, bleu, rouge1, rougeL
+    return losses, bleu, rouge1, rougeL
 
 
 def translate(sentence, model, src_vocab, trg_vocab, trg_id, src_mask, src_padding_mask):
@@ -174,7 +162,7 @@ def rouge_score(predicted, actual):
     return rouge_results['rouge1'], rouge_results['rougeL']
     
 def train(args):
-    train_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_alsg_dataset(
+    train_dl, valid_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = load_alsg_dataset(
         args.batch, reverse=args.reverse
     )
     
@@ -209,7 +197,7 @@ def train(args):
     optimizer = optim.Adam(
         model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=args.adams_ep
     )
-    best_loss = torch.inf
+    best_bleu = -torch.inf
     accuracy_history = []
     loss_history = []
 
@@ -222,17 +210,17 @@ def train(args):
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         criterion = checkpoint["criterion"]
-        best_loss = checkpoint["best_loss"]
+        best_bleu = checkpoint["best_bleu"]
         accuracy_history = checkpoint["accuracy_history"]
         loss_history = checkpoint["loss_history"]
 
     # Calculate starting performance of the model
-    valid_loss, correct, bleu, rouge1, rougeL = (
-        validate(model, test_dl, criterion, gloss_vocab, gloss_id, text_vocab, text_id)
+    valid_loss, bleu, rouge1, rougeL = (
+        validate(model, valid_dl, criterion, gloss_vocab, gloss_id, text_vocab, text_id)
         if not args.reverse
-        else validate(model, test_dl, criterion, text_vocab, text_id, gloss_vocab, gloss_id)
+        else validate(model, valid_dl, criterion, text_vocab, text_id, gloss_vocab, gloss_id)
     )
-
+    
     print(
         f"Valid Average loss: {valid_loss:>8f}, BLEU Score: {bleu:.2f}, Rouge-1 Score: {rouge1:.2f}, Rouge-L Score: {rougeL:.2f}"
     )
@@ -251,10 +239,10 @@ def train(args):
         )
 
         # Goes through the validation dataset
-        valid_loss, correct, bleu, rouge1, rougeL = (
-            validate(model, test_dl, criterion, gloss_vocab, gloss_id, text_vocab, text_id)
+        valid_loss, bleu, rouge1, rougeL = (
+            validate(model, valid_dl, criterion, gloss_vocab, gloss_id, text_vocab, text_id)
             if not args.reverse
-            else validate(model, test_dl, criterion, text_vocab, text_id, gloss_vocab, gloss_id)
+            else validate(model, valid_dl, criterion, text_vocab, text_id, gloss_vocab, gloss_id)
         )
 
         loss_history.append(valid_loss)
@@ -262,8 +250,8 @@ def train(args):
 
         # If the average loss from testing the validation data is smallest than the best model at that point,
         # Then we save the current model
-        if valid_loss < best_loss:
-            best_loss = valid_loss
+        if bleu > best_bleu:
+            best_bleu = bleu
             print("New best model, saving...")
             torch.save(
                 {
@@ -271,7 +259,7 @@ def train(args):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "criterion": criterion,
-                    "best_loss": best_loss,
+                    "best_bleu": bleu,
                     "loss_history": loss_history,
                     "accuracy_history": accuracy_history,
                     "config": args,
