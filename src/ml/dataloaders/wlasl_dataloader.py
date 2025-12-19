@@ -31,7 +31,7 @@ def load_wlasl_dataset(batch_size=1, random_state=29, test_size=0.1):
     path = os.path.join("data", "preprocessed", "wlasl.msgpack")
     with open(path, "rb") as file:
         byte_data = file.read()
-    
+
     wlasl = msgpack.unpackb(byte_data)
     data = [(sample["label"], sample["features"]) for sample in wlasl["samples"]]
     glosses, features = zip(*data)
@@ -41,7 +41,7 @@ def load_wlasl_dataset(batch_size=1, random_state=29, test_size=0.1):
     gloss_train, gloss_test, features_train, features_test = train_test_split(
         glosses, features, random_state=29, test_size=test_size, shuffle=True
     )
-    
+
     train = SignToVideoDataset(gloss_train, features_train)
     test = SignToVideoDataset(gloss_test, features_test)
 
@@ -51,7 +51,7 @@ def load_wlasl_dataset(batch_size=1, random_state=29, test_size=0.1):
     test_loader = DataLoader(
         test, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )
-    
+
     return (
         wlasl["num_classes"],
         train_loader,

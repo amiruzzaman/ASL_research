@@ -14,6 +14,7 @@ holistic_model = mp_holistic.Holistic(
     min_detection_confidence=0.5, min_tracking_confidence=0.5
 )
 
+
 def extract_data_from_video(path):
     cap = cv.VideoCapture(path)
     frames = []
@@ -79,7 +80,7 @@ for label in dataset:
 
         if not os.path.exists(source_path):
             continue
-                
+
         frames, features = extract_data_from_video(source_path)
         data = [feature.tolist() for feature in features]
         samples.append({"label": gloss, "features": data})

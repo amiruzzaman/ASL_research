@@ -29,13 +29,19 @@ class BaseTransformer(nn.Module):
         # Encoder
         self.src_embedding = nn.Embedding(src_vocab_size, embedding_dim=d_model)
         self.encoder = TransformerEncoder(
-            num_layers=num_encoders, d_model=d_model, num_heads=num_heads, dropout=dropout
+            num_layers=num_encoders,
+            d_model=d_model,
+            num_heads=num_heads,
+            dropout=dropout,
         )
 
         # Decoder
         self.trg_embedding = nn.Embedding(trg_vocab_size, embedding_dim=d_model)
         self.decoder = TransformerDecoder(
-            num_layers=num_decoders, d_model=d_model, num_heads=num_heads, dropout=dropout
+            num_layers=num_decoders,
+            d_model=d_model,
+            num_heads=num_heads,
+            dropout=dropout,
         )
 
         # Classification
@@ -43,7 +49,9 @@ class BaseTransformer(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, src: Tensor, trg: Tensor, src_mask: Tensor):
-        trg_mask: Tensor = generate_square_subsequent_mask(trg, self.pad_token).to(trg.device)
+        trg_mask: Tensor = generate_square_subsequent_mask(trg, self.pad_token).to(
+            trg.device
+        )
 
         src = self.src_embedding(src) * math.sqrt(self.d_model)
         trg = self.trg_embedding(trg) * math.sqrt(self.d_model)
@@ -66,7 +74,9 @@ class BaseTransformer(nn.Module):
         # src = src.unsqueeze(0)
 
         # Feed the source sequence and its mask into the transformer's encoder
-        memory = self.encoder(self.src_embedding(src) * math.sqrt(self.d_model), src_mask)
+        memory = self.encoder(
+            self.src_embedding(src) * math.sqrt(self.d_model), src_mask
+        )
 
         # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
         sequence = (
@@ -79,7 +89,9 @@ class BaseTransformer(nn.Module):
 
         for t in range(1, max_len):
             out = sequence[:, :t]
-            trg_mask = generate_square_subsequent_mask(out, self.pad_token).to(src.device)
+            trg_mask = generate_square_subsequent_mask(out, self.pad_token).to(
+                src.device
+            )
 
             # Feeds the target and retrieves a vector (batch_size, sequence_size, trg_vocab_size)
             out = self.trg_embedding(out) * math.sqrt(self.d_model)

@@ -5,13 +5,19 @@ from torch import Tensor
 import torch.nn as nn
 
 from ml.models.asl_to_english_v2.attention import MultiHeadAttention
-from ml.models.asl_to_english_v2.position_wise_feed_forward import PositionWiseFeedForward
+from ml.models.asl_to_english_v2.position_wise_feed_forward import (
+    PositionWiseFeedForward,
+)
 from ml.models.asl_to_english_v2.positional_embedding import PositionalEncoding
 
 
 class EncoderLayer(nn.Module):
     def __init__(
-        self, d_model: int = 512, num_heads: int = 8, hidden_size: int = 1024, dropout: float = 0.1
+        self,
+        d_model: int = 512,
+        num_heads: int = 8,
+        hidden_size: int = 1024,
+        dropout: float = 0.1,
     ):
         super(EncoderLayer, self).__init__()
 
@@ -55,7 +61,10 @@ class TransformerEncoder(nn.Module):
 
         self.pe = PositionalEncoding(d_model)
         self.layers = nn.ModuleList(
-            [EncoderLayer(d_model, num_heads, hidden_size, dropout) for _ in range(num_layers)]
+            [
+                EncoderLayer(d_model, num_heads, hidden_size, dropout)
+                for _ in range(num_layers)
+            ]
         )
 
     def forward(self, x: Tensor, mask: Optional[Tensor] = None):

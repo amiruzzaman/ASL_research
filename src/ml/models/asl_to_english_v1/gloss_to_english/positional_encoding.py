@@ -3,7 +3,7 @@ import torch
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, drop_p=0.1, max_len=1000, device="cpu"):
+    def __init__(self, d_model, drop_p=0.1, max_len=1000):
         """
         Create a positional encoding matrix.
 
@@ -15,7 +15,7 @@ class PositionalEncoding(nn.Module):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=drop_p)
 
-        pe = torch.zeros(max_len, d_model).to(device)
+        pe = torch.zeros(max_len, d_model)
 
         pos = torch.arange(0, max_len).unsqueeze(dim=1)
         dim = torch.arange(0, d_model, 2)

@@ -57,7 +57,9 @@ def generate_square_subsequent_mask(x: Tensor, pad_token: int):
 
     N, sequence_length = x.shape
     causal_mask = (
-        torch.tril(torch.ones((N, 1, sequence_length, sequence_length))).bool().to(DEVICE)
+        torch.tril(torch.ones((N, 1, sequence_length, sequence_length)))
+        .bool()
+        .to(DEVICE)
     )
     padding_mask = generate_padding_mask(x, pad_token).bool().to(DEVICE)
 
@@ -172,7 +174,12 @@ def decode_sentences(sequence: list, word_to_idx: dict, idx_to_word: dict):
     )
 
     sentences = [
-        " ".join([idx_to_word[token] for token in list(filter(remove_special_tokens, sample))])
+        " ".join(
+            [
+                idx_to_word[token]
+                for token in list(filter(remove_special_tokens, sample))
+            ]
+        )
         for sample in sequence
     ]
 
@@ -185,7 +192,9 @@ def decode_glosses(sequence: list, gloss_to_idx: dict, idx_to_gloss: dict):
     remove_padding = lambda x: x != gloss_to_idx["<pad>"]
 
     sequence = [
-        " ".join([idx_to_gloss[token] for token in list(filter(remove_padding, sample))])
+        " ".join(
+            [idx_to_gloss[token] for token in list(filter(remove_padding, sample))]
+        )
         for sample in sequence
     ]
     return sequence

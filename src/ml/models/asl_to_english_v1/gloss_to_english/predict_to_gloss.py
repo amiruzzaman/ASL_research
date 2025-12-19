@@ -33,7 +33,7 @@ def inference(args):
         model.load_state_dict(checkpoint["model_state_dict"])
 
     model.eval()
-    
+
     while True:
         print("~~ Translate English to ASL Gloss Sentence ~~")
         sequence = input("ASL Sequence: ")

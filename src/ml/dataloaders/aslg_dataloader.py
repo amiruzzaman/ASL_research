@@ -9,11 +9,14 @@ from tqdm import tqdm
 import os
 import pandas as pd
 
+from ml.models.asl_to_english_v1.vocab import Vocabulary
+
 DATASET_PATH = os.path.join("src", "ml", "data", "processed", "aslgpc12", "dataset.csv")
 
-class ASLDataset(Dataset):
+
+class TextDataset(Dataset):
     def __init__(
-        self, src_set, trg_set, src_vocab, trg_vocab
+        self, src: list, trg: list, src_vocab: Vocabulary, trg_vocab: Vocabulary
     ):
         """
         Custom dataset class for the ASLG-PC12 dataset
@@ -29,15 +32,14 @@ class ASLDataset(Dataset):
             text_filters: A list that contains certain words to get rid of in the texts
         """
 
-        self.src_set = src_set
-        self.trg_set = trg_set
+        self.src = src
+        self.trg = trg
 
         self.src_vocab = src_vocab
         self.trg_vocab = trg_vocab
 
-
     def __len__(self):
-        return len(self.src_set)
+        return len(self.src)
 
     def __getitem__(self, index):
         """
@@ -52,19 +54,13 @@ class ASLDataset(Dataset):
             Two sequence of tokens for the glosses and sentences with an <SOS> token added to the start
             and an <EOS> token added to the end.
         """
-        
-        src = self.src_set[index]
-        trg = self.trg_set[index]
 
-        
+        src_sample = self.src[index]
+        trg_sample = self.trg[index]
 
         # Split sentence of ASL gloss and English text to a list of words (Adds the SOS and EOS also)
-        src_words = ["<sos>"] + src.split() + ["<eos>"]
-        trg_words = ["<sos>"] + trg.split() + ["<eos>"]
-        
-        # Convert those list of words to tokens/indices in the vocab
-        src_tokens = torch.tensor([self.src_vocab[word] for word in src_words])
-        trg_tokens = torch.tensor([self.trg_vocab[word] for word in trg_words])
+        src_tokens = self.src_vocab.tokenize(src_sample)
+        trg_tokens = self.trg_vocab.tokenize(trg_sample)
 
         return src_tokens, trg_tokens
 
@@ -87,17 +83,17 @@ def build_vocab(dataset, special=["<sos>", "<eos>", "<pad>", "<unk>"]):
     # Getting the count of all words in the dataset
     for sentence in tqdm(dataset):
         count.update(sentence.split())
-    
+
     # Sort the words based on how many times it appears in the dataset (Largest to smallest)
     words = sorted(count.keys(), key=lambda word: count[word], reverse=True)
 
     # Combine the special words (SOS, EOS, etc) with the words from the dataset
     vocab = special + words
-    
+
     # Pairs word with their index in the vocab list (and vice versa)
     word_to_id = {word: id for id, word in enumerate(vocab)}
     id_to_word = {id: word for id, word in enumerate(vocab)}
-        
+
     return word_to_id, id_to_word
 
 
@@ -141,16 +137,15 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=Fals
 
     glosses = df["gloss"].tolist()
     texts = df["text"].tolist()
-    
+
     print("Building the vocab...")
     gloss_vocab, gloss_id = build_vocab(glosses)
     text_vocab, text_id = build_vocab(texts)
-    
+
     # Split data into a training, validation, and test set
     gloss_train, gloss_test, text_train, text_test = train_test_split(
         glosses, texts, random_state=29, test_size=test_size, shuffle=True
     )
-
 
     gloss_valid, gloss_test, text_valid, text_test = train_test_split(
         gloss_test, text_test, random_state=29, test_size=0.5, shuffle=True
@@ -159,33 +154,21 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=Fals
     print(len(gloss_train))
     print(len(gloss_valid))
     print(len(gloss_test))
-        
+
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
     train_dataset, valid_dataset, test_dataset = None, None, None
 
     if not reverse:
-        train_dataset = ASLDataset(
-            gloss_train, text_train, gloss_vocab, text_vocab
-        )
-        valid_dataset = ASLDataset(
-            gloss_valid, text_valid, gloss_vocab, text_vocab
-        )
-        test_dataset = ASLDataset(
-            gloss_test, text_test, gloss_vocab, text_vocab
-        )
-    
+        train_dataset = ASLDataset(gloss_train, text_train, gloss_vocab, text_vocab)
+        valid_dataset = ASLDataset(gloss_valid, text_valid, gloss_vocab, text_vocab)
+        test_dataset = ASLDataset(gloss_test, text_test, gloss_vocab, text_vocab)
+
     else:
-        train_dataset = ASLDataset(
-            text_train, gloss_train, text_vocab, gloss_vocab
-        )
-        valid_dataset = ASLDataset(
-            text_valid, gloss_valid, text_vocab, gloss_vocab
-        )
-        test_dataset = ASLDataset(
-            text_test, gloss_test, text_vocab, gloss_vocab
-        )
-    
+        train_dataset = ASLDataset(text_train, gloss_train, text_vocab, gloss_vocab)
+        valid_dataset = ASLDataset(text_valid, gloss_valid, text_vocab, gloss_vocab)
+        test_dataset = ASLDataset(text_test, gloss_test, text_vocab, gloss_vocab)
+
     train_dl = DataLoader(
         train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )

@@ -73,14 +73,16 @@ class ASLModel(nn.Module):
 
     def forward(self, src: Tensor, trg: Tensor, src_lengths: Optional[Tensor] = None):
         src, src_mask, src_lengths = self.src_embedding(src, src_lengths)
-        trg_mask = generate_square_subsequent_mask(trg, self.word_pad_token).to(trg.device)
+        trg_mask = generate_square_subsequent_mask(trg, self.word_pad_token).to(
+            trg.device
+        )
 
         src = src * math.sqrt(self.d_model)
         trg = self.trg_embedding(trg) * math.sqrt(self.d_model)
 
         src = self.encoder(src, src_mask)
         trg = self.decoder(trg, src, trg_mask, src_mask)
-    
+
         src = self.ff_1(src)
         trg = self.ff_2(trg)
 
@@ -113,7 +115,9 @@ class ASLModel(nn.Module):
         encoded = self.ff_1(memory)
         encoded = softmax(encoded, dim=-1)
         encoded = torch.argmax(encoded, dim=-1).tolist()
-        encoded = [[gloss for gloss, _ in itertools.groupby(sample)] for sample in encoded]
+        encoded = [
+            [gloss for gloss, _ in itertools.groupby(sample)] for sample in encoded
+        ]
         encoded = [
             list(filter(lambda gloss: gloss != self.gloss_to_idx["-"], sample))
             for sample in encoded
@@ -128,10 +132,12 @@ class ASLModel(nn.Module):
         )
         # Fill first column (or the beginning of the sequences) with <SOS> tokens
         sequence[:, 0] = self.word_to_idx["<sos>"]
-        
+
         for t in range(1, max_len):
             out = sequence[:, :t]
-            trg_mask = generate_square_subsequent_mask(out, self.word_pad_token).to(src.device)
+            trg_mask = generate_square_subsequent_mask(out, self.word_pad_token).to(
+                src.device
+            )
 
             # Feeds the target and retrieves a vector (batch_size, sequence_size, trg_vocab_size)
             out = self.trg_embedding(out) * math.sqrt(self.d_model)

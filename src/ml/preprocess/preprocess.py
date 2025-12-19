@@ -33,7 +33,7 @@ def convert_to_frames(path):
     except FileExistsError:
         # print(f"Directory '{folder_name}' already exists.")
         return os.path.basename(folder_path)
-    
+
     video = cv2.VideoCapture(path)
     success, image = video.read()
     count = 0
@@ -85,7 +85,9 @@ def create_dataset(paths, glosses, texts, name):
 
     # Removing invalid video paths
     df = df.loc[
-        df["paths"].astype(str).map(lambda file: os.path.exists(os.path.join(VIDEO_PATH, file)))
+        df["paths"]
+        .astype(str)
+        .map(lambda file: os.path.exists(os.path.join(VIDEO_PATH, file)))
     ]
 
     # Creating new columns for the number of frames
@@ -140,14 +142,17 @@ def create_dataset(paths, glosses, texts, name):
 def main():
     try:
         os.mkdir(PROCESSED_VIDEO_PATH)
-        print(f"Directory '{os.path.basename(PROCESSED_VIDEO_PATH)}' created successfully.")
+        print(
+            f"Directory '{os.path.basename(PROCESSED_VIDEO_PATH)}' created successfully."
+        )
     except FileExistsError:
         print(f"Directory '{os.path.basename(PROCESSED_VIDEO_PATH)}' already exists.")
 
     # Load dataset
     print("Loading dataset...")
     with gzip.open(
-        os.path.join(EXTERNAL_PATH, "phoenix14t.pami0.train.annotations_only.gzip"), "rb"
+        os.path.join(EXTERNAL_PATH, "phoenix14t.pami0.train.annotations_only.gzip"),
+        "rb",
     ) as f:
         train = pickle.load(f)
 
@@ -189,7 +194,7 @@ def main():
         [key["text"].lower().replace(".", "").strip() for key in dev],
         "dev",
     )
-    
+
     create_dataset(
         video_path(test),
         [key["gloss"].upper().strip() for key in test],

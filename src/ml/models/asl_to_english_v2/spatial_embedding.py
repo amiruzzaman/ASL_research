@@ -103,9 +103,13 @@ class SpatialEmbedding(nn.Module):
         self.extractor = None
         match pretrained_model:
             case "efficientnet_b0":
-                self.extractor = efficientnet_b0(weights=EfficientNet_B0_Weights.IMAGENET1K_V1)
+                self.extractor = efficientnet_b0(
+                    weights=EfficientNet_B0_Weights.IMAGENET1K_V1
+                )
             case "efficientnet_b4":
-                self.extractor = efficientnet_b4(weights=EfficientNet_B4_Weights.IMAGENET1K_V1)
+                self.extractor = efficientnet_b4(
+                    weights=EfficientNet_B4_Weights.IMAGENET1K_V1
+                )
             case "resnet50":
                 self.extractor = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
 
@@ -123,9 +127,13 @@ class SpatialEmbedding(nn.Module):
                     self.extractor.classifier[1].in_features, hidden_size
                 )
             case "resnet50":
-                self.extractor.fc = nn.Linear(self.extractor.fc.in_features, hidden_size)
+                self.extractor.fc = nn.Linear(
+                    self.extractor.fc.in_features, hidden_size
+                )
 
-        self.conv_1 = Conv1DBlock(in_channels=hidden_size, out_channels=hidden_size, kernel_size=5)
+        self.conv_1 = Conv1DBlock(
+            in_channels=hidden_size, out_channels=hidden_size, kernel_size=5
+        )
         # self.conv_2 = Conv1DBlock(in_channels=hidden_size, out_channels=hidden_size, kernel_size=3)
         self.ff = nn.Linear(hidden_size, d_model)
         self.bn = MaskedBatchNorm(num_features=d_model)
