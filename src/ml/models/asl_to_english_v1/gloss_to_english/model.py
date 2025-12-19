@@ -216,3 +216,68 @@ class TranslatorModel(nn.Module):
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
+    def beam_search(
+        self,
+        src,
+        src_mask,
+        src_vocab,
+        trg_vocab,
+        device,
+        max_len=100,
+        beam_size=25,
+        temperature=1.0,
+    ):
+        # Convert the sequences from (Sequence) to (Batch, Sequence)
+        src = src.unsqueeze(0).to(device)
+
+        # Feed the source sequence and its mask into the transformer's encoder
+        memory = self.encode(src, src_mask)
+
+        # Creates the sequence tensor to be feed into the decoder: [["<sos>"]]
+        start = torch.ones(1, 1).fill_(trg_vocab["<sos>"]).type(torch.long).to(device)
+        candidates = [(start, 0)]
+
+        for _ in range(max_len):
+            new_candidates = []
+
+            for candidate, score in candidates:
+                # We do not want to expand current candidate, if the candidates's sequence reaches <eos>
+                if candidate[0, -1].item() == trg_vocab["<eos>"]:
+                    continue
+
+                mask = (
+                    generate_square_subsequent_mask(candidate.shape[-1], device)
+                    .type(torch.bool)
+                    .to(device)
+                )
+
+                logits = self.decode(candidate, memory, mask)
+                # scaled_logits = logits / temperature
+                # out = self.softmax(scaled_logits)
+                top_k_prob, top_k_idx = torch.topk(logits, beam_size, dim=1)
+
+                # For each probability, get the token and its accompanying probability
+                for i in range(beam_size):
+                    token = top_k_idx[:, i]
+                    token_prob = torch.log(top_k_prob[:, i])
+
+                    new_candidate = torch.cat(
+                        (candidate, torch.tensor([[token]]).to(device)), dim=-1
+                    ).to(device)
+                    new_score = score + token_prob
+
+                    new_candidates.append((new_candidate, new_score))
+            
+            candidates = sorted(
+                new_candidates, key=lambda candidate: candidate[1], reverse=True
+            )
+            candidates = candidates[:beam_size]
+            
+            if all(
+                candidate[0, -1].item() == trg_vocab["<eos>"]
+                for candidate, _ in candidates
+            ):
+                break
+
+        sequence, _ = candidates[0]
+        return sequence
