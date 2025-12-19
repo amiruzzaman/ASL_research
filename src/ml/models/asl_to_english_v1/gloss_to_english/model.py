@@ -203,7 +203,7 @@ class TranslatorModel(nn.Module):
                 self.trg_vocab.eos_token,
                 next_word,
             )
-
+            
             # Concatenate the predicted token to the output sequence
             if (next_word == self.trg_vocab.eos_token).all():
                 break

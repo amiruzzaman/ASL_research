@@ -64,6 +64,7 @@ class Trainer:
 
         self.bleu_metric = evaluate.load("bleu")
         self.rouge_metric = evaluate.load("rouge")
+        self.wer_metric = evaluate.load("wer")
 
         self.load()
 
@@ -98,7 +99,7 @@ class Trainer:
                 trg_padding_mask.to(DEVICE),
                 src_padding_mask.to(DEVICE),
             )
-
+    
             # For the criterion function to work, we have to concatenate all the batches together for it to work
             # The shape of the tensor will turn from (Batch, Sequence Size, Target Vocab Size)
             # to (Batch * Sequence Size, Target Vocab Size)
@@ -175,9 +176,16 @@ class Trainer:
         rouge1, rougeL = self.rouge_score(
             predicted=predicted_sentences, actual=actual_sentences
         )
+        wer = self.wer_score(predicted=predicted_sentences, actual=actual_sentences)
         losses /= len(self.valid_dl.dataset)
 
-        return losses, bleu, rouge1, rougeL
+        return {
+            "loss": losses,
+            "bleu": bleu,
+            "rouge1": rouge1,
+            "rougeL": rougeL,
+            "wer": wer
+        }
 
     def translate(self, sentence, src_mask, src_padding_mask):
         num_tokens = sentence.shape[1]
@@ -262,6 +270,12 @@ class Trainer:
             predictions=predicted, references=actual
         )
         return rouge_results["rouge1"], rouge_results["rougeL"]
+    
+    def wer_score(self, predicted, actual):
+        rouge_results = self.rouge_metric.compute(
+            predictions=predicted, references=actual
+        )
+        return rouge_results["rouge1"], rouge_results["rougeL"]
 
 
 def create_data(config):
@@ -304,14 +318,13 @@ def main(config):
         model=model,
         optimizer=optimizer,
         train_dl=train_dl,
-        valid_dl=train_dl,
+        valid_dl=valid_dl,
         test_dl=test_dl,
         src_vocab=gloss_vocab,
         trg_vocab=text_vocab,
     )
-
+    
     trainer.train()
-
 
 if __name__ == "__main__":
     with open(os.path.join("src", "ml", "configs", "gloss_to_english.yaml")) as file:
