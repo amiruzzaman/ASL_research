@@ -142,7 +142,7 @@ class Trainer:
             src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(
                 src, trg_input, self.trg_vocab.pad_token
             )
-
+        
             # Feed the inputs through the translation model
             # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model
             # instead of the model's output in the prior timestep

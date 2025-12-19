@@ -168,7 +168,7 @@ class TranslatorModel(nn.Module):
 
         return self.linear(out[:, -1])
 
-    def greedy_decode(self, src, src_mask, src_padding_mask, max_len=100):
+    def greedy_decode(self, src, src_mask=None, src_padding_mask=None, max_len=100):
         self.eval()
 
         # Convert the sequences from (Sequence) to (Batch, Sequence)
@@ -283,6 +283,6 @@ class TranslatorModel(nn.Module):
                 for candidate, _ in candidates
             ):
                 break
-
+        
         sequence, _ = candidates[0]
         return sequence
