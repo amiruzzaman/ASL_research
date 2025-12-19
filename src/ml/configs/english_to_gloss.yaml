@@ -1,6 +1,6 @@
 # Hyperparameters
 dataset: "aslg-pc12"
-reverse: false
+reverse: true
 epochs: 500
 batch_size: 32
 lr: 1e-4
@@ -18,5 +18,5 @@ dropout: 0.1
 norm_first: False
 
 # Model save and load paths
-model_name: "gloss_to_english"
+model_name: "english_to_gloss"
 save_path: "src/ml/saved_models"

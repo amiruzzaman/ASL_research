@@ -84,12 +84,12 @@ def build_vocab(dataset, special=["<sos>", "<eos>", "<pad>", "<unk>"]):
     # Getting the count of all words in the dataset
     for sentence in tqdm(dataset):
         count.update(sentence.split())
-
+    
     # Sort the words based on how many times it appears in the dataset (Largest to smallest)
     words = sorted(count.keys(), key=lambda word: count[word], reverse=True)
 
     # Combine the special words (SOS, EOS, etc) with the words from the dataset
-    vocab = special + words
+    vocab = words
 
     # Pairs word with their index in the vocab list (and vice versa)
     word_to_id = {word: id for id, word in enumerate(vocab)}
@@ -134,8 +134,8 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=Fals
 
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
-    df = pd.read_csv(DATASET_PATH).head(n=30)
-
+    df = pd.read_csv(DATASET_PATH)
+    
     glosses = df["gloss"].tolist()
     texts = df["text"].tolist()
 
@@ -149,11 +149,11 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=Fals
     )
 
     valid, test = train_test_split(test, random_state=29, test_size=0.5, shuffle=True)
-
+    
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
     train_dataset, valid_dataset, test_dataset = None, None, None
-
+    
     if not reverse:
         train_dataset = TextDataset(
             train["gloss"].tolist(), train["text"].tolist(), gloss_vocab, text_vocab
@@ -186,9 +186,9 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=Fals
     test_dl = DataLoader(
         test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )
-
+    
     return train_dl, valid_dl, test_dl, gloss_vocab, text_vocab
-
+    
 
 def load_phoenix_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=False):
     """
@@ -209,21 +209,17 @@ def load_phoenix_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=F
     train = pd.read_csv(os.path.join(PHOENIX_PATH, "train.csv"))
     valid = pd.read_csv(os.path.join(PHOENIX_PATH, "dev.csv"))
     test = pd.read_csv(os.path.join(PHOENIX_PATH, "test.csv"))
-
+    
     print("Building the vocab...")
     vocab = json.load(open(os.path.join(os.path.join(PHOENIX_PATH, "vocab.json"))))
     glosses, texts = vocab["glosses"], vocab["words"]
-
-    glosses = ["<sos>", "<eos>", "<pad>"] + glosses[2:]
-    gloss_vocab = {word: id for id, word in enumerate(glosses)}
-    gloss_id = {id: word for id, word in enumerate(glosses)}
-
-    text_vocab = {word: id for id, word in enumerate(texts)}
-    text_id = {id: word for id, word in enumerate(texts)}
-
+    
+    gloss_vocab = Vocabulary(glosses[2:])
+    text_vocab = Vocabulary(texts[3:])
+    
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
-
+        
     train_dataset = TextDataset(
         train["gloss"].tolist(), train["text"].tolist(), gloss_vocab, text_vocab
     )
@@ -233,7 +229,7 @@ def load_phoenix_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=F
     test_dataset = TextDataset(
         test["gloss"].tolist(), test["text"].tolist(), gloss_vocab, text_vocab
     )
-
+    
     train_dl = DataLoader(
         train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )

@@ -2,9 +2,9 @@ import torch
 
 
 class Vocabulary:
-    def __init__(self, words: str):
-        self.words = words
-
+    def __init__(self, words: str, special_tokens=["<sos>", "<eos>", "<pad>", "<unk>"]):
+        self.words = special_tokens + words
+        
         # Create dictionaries to convert string tokens into their ids and vice versa
         self.word_to_idx = {word: i for i, word in enumerate(self.words)}
         self.idx_to_word = {i: word for i, word in enumerate(self.words)}
@@ -28,7 +28,7 @@ class Vocabulary:
             ]
             + [self.word_to_idx["<eos>"]]
         )
-
+    
     def tokenize_batch(self, sentences: list):
         return torch.stack([self.tokenize(sentence) for sentence in sentences], dim=0)
 

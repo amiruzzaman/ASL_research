@@ -13,10 +13,12 @@ class TranslatorModel(nn.Module):
         src_vocab: Vocabulary,
         trg_vocab: Vocabulary,
         d_model=512,
+        hidden_size=2048,
         heads=8,
         num_encoders=1,
         num_decoders=1,
         dropout=0.1,
+        norm_first=False,
         max_len=1000,
         activation="relu",
     ):
@@ -56,12 +58,14 @@ class TranslatorModel(nn.Module):
 
         self.transformer = nn.Transformer(
             d_model=d_model,
+            dim_feedforward=hidden_size,
             nhead=heads,
             num_encoder_layers=num_encoders,
             num_decoder_layers=num_decoders,
             dropout=dropout,
             activation=activation,
             batch_first=True,
+            norm_first=norm_first
         )
 
         self.linear = nn.Linear(d_model, trg_vocab.get_size())
@@ -203,7 +207,7 @@ class TranslatorModel(nn.Module):
                 self.trg_vocab.eos_token,
                 next_word,
             )
-            
+
             # Concatenate the predicted token to the output sequence
             if (next_word == self.trg_vocab.eos_token).all():
                 break
