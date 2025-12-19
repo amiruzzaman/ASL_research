@@ -268,7 +268,7 @@ class TranslatorModel(nn.Module):
                 new_candidates, key=lambda candidate: candidate[1], reverse=True
             )
             candidates = candidates[:beam_size]
-
+            
             if all(
                 candidate[0, -1].item() == trg_vocab["<eos>"]
                 for candidate, _ in candidates
