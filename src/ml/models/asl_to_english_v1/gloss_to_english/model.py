@@ -185,7 +185,7 @@ class TranslatorModel(nn.Module):
 
         for t in range(1, max_len):
             out = sequence[:, :t]
-            trg_padding_mask = out == self.trg_vocab.pad_token
+            trg_padding_mask = (out == self.trg_vocab.pad_token).to(src.device)
 
             mask = generate_square_subsequent_mask(t).type(torch.bool).to(src.device)
 
@@ -216,6 +216,7 @@ class TranslatorModel(nn.Module):
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
+
     def beam_search(
         self,
         src,
@@ -267,12 +268,12 @@ class TranslatorModel(nn.Module):
                     new_score = score + token_prob
 
                     new_candidates.append((new_candidate, new_score))
-            
+
             candidates = sorted(
                 new_candidates, key=lambda candidate: candidate[1], reverse=True
             )
             candidates = candidates[:beam_size]
-            
+
             if all(
                 candidate[0, -1].item() == trg_vocab["<eos>"]
                 for candidate, _ in candidates

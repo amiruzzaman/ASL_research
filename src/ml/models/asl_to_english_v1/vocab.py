@@ -12,15 +12,20 @@ class Vocabulary:
         assert "<pad>" in self.word_to_idx, "<PAD> token doesn't exist in text vocab"
         assert "<eos>" in self.word_to_idx, "<EOS> token doesn't exist in text vocab"
         assert "<sos>" in self.word_to_idx, "<SOS> token doesn't exist in text vocab"
+        assert "<unk>" in self.word_to_idx, "<UNK> token doesn't exist in text vocab"
 
         self.sos_token = self.word_to_idx["<sos>"]
         self.eos_token = self.word_to_idx["<eos>"]
         self.pad_token = self.word_to_idx["<pad>"]
+        self.unk_token = self.word_to_idx["<unk>"]
 
     def tokenize(self, sentence: str):
         return torch.tensor(
             [self.word_to_idx["<sos>"]]
-            + [self.word_to_idx[word] for word in sentence.split()]
+            + [
+                (self.word_to_idx[word] if word in self.word_to_idx else self.unk_token)
+                for word in sentence.split()
+            ]
             + [self.word_to_idx["<eos>"]]
         )
 

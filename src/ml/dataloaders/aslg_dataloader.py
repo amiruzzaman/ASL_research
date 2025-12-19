@@ -14,6 +14,7 @@ from ml.models.asl_to_english_v1.vocab import Vocabulary
 DATASET_PATH = os.path.join("src", "ml", "data", "processed", "aslgpc12", "dataset.csv")
 PHOENIX_PATH = os.path.join("src", "ml", "data", "processed", "rwth-phoenix-2014t")
 
+
 class TextDataset(Dataset):
     def __init__(
         self, src: list, trg: list, src_vocab: Vocabulary, trg_vocab: Vocabulary
@@ -94,7 +95,7 @@ def build_vocab(dataset, special=["<sos>", "<eos>", "<pad>", "<unk>"]):
     word_to_id = {word: id for id, word in enumerate(vocab)}
     id_to_word = {id: word for id, word in enumerate(vocab)}
 
-    return word_to_id, id_to_word
+    return vocab
 
 
 # Processes the list of samples in the batch so that all sample sentences are the same length
@@ -133,55 +134,48 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=Fals
 
     # Loading the English-ASL Gloss Parallel Corpus 2012 Dataset
     print("Loading in Dataset...")
-    df = pd.read_csv(DATASET_PATH)
+    df = pd.read_csv(DATASET_PATH).head(n=30)
 
     glosses = df["gloss"].tolist()
     texts = df["text"].tolist()
 
     print("Building the vocab...")
-    gloss_vocab, gloss_id = build_vocab(glosses)
-    text_vocab, text_id = build_vocab(texts)
+    gloss_vocab = Vocabulary(build_vocab(glosses))
+    text_vocab = Vocabulary(build_vocab(texts))
 
     # Split data into a training, validation, and test set
-    gloss_train, gloss_test, text_train, text_test = train_test_split(
-        glosses, texts, random_state=29, test_size=test_size, shuffle=True
+    train, test = train_test_split(
+        df, random_state=29, test_size=test_size, shuffle=True
     )
 
-    gloss_valid, gloss_test, text_valid, text_test = train_test_split(
-        gloss_test, text_test, random_state=29, test_size=0.5, shuffle=True
-    )
-    # print(len(glosses))
-    # print(len(gloss_train))
-    # print(len(gloss_valid))
-    # print(len(gloss_test))
-
-    # print(gloss_valid[:10])
-    # print(gloss_test[:10])
-        
-    print(len(gloss_train))
-    print(len(gloss_valid))
-    print(len(gloss_test))
+    valid, test = train_test_split(test, random_state=29, test_size=0.5, shuffle=True)
 
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
     train_dataset, valid_dataset, test_dataset = None, None, None
 
     if not reverse:
-        train_dataset = ASLDataset(gloss_train, text_train, gloss_vocab, text_vocab)
-        valid_dataset = ASLDataset(gloss_valid, text_valid, gloss_vocab, text_vocab)
-        test_dataset = ASLDataset(gloss_test, text_test, gloss_vocab, text_vocab)
+        train_dataset = TextDataset(
+            train["gloss"].tolist(), train["text"].tolist(), gloss_vocab, text_vocab
+        )
+        valid_dataset = TextDataset(
+            valid["gloss"].tolist(), valid["text"].tolist(), gloss_vocab, text_vocab
+        )
+        test_dataset = TextDataset(
+            test["gloss"].tolist(), test["text"].tolist(), gloss_vocab, text_vocab
+        )
 
     else:
-        train_dataset = ASLDataset(
-            text_train, gloss_train, text_vocab, gloss_vocab
+        train_dataset = TextDataset(
+            train["text"].tolist(), train["gloss"].tolist(), text_vocab, gloss_vocab
         )
-        valid_dataset = ASLDataset(
-            text_valid, gloss_valid, text_vocab, gloss_vocab
+        valid_dataset = TextDataset(
+            valid["text"].tolist(), valid["gloss"].tolist(), text_vocab, gloss_vocab
         )
-        test_dataset = ASLDataset(
-            text_test, gloss_test, text_vocab, gloss_vocab
+        test_dataset = TextDataset(
+            test["text"].tolist(), test["gloss"].tolist(), text_vocab, gloss_vocab
         )
-    
+
     train_dl = DataLoader(
         train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )
@@ -193,7 +187,8 @@ def load_alsg_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=Fals
         test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )
 
-    return train_dl, valid_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id
+    return train_dl, valid_dl, test_dl, gloss_vocab, text_vocab
+
 
 def load_phoenix_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=False):
     """
@@ -214,34 +209,30 @@ def load_phoenix_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=F
     train = pd.read_csv(os.path.join(PHOENIX_PATH, "train.csv"))
     valid = pd.read_csv(os.path.join(PHOENIX_PATH, "dev.csv"))
     test = pd.read_csv(os.path.join(PHOENIX_PATH, "test.csv"))
-    
+
     print("Building the vocab...")
     vocab = json.load(open(os.path.join(os.path.join(PHOENIX_PATH, "vocab.json"))))
     glosses, texts = vocab["glosses"], vocab["words"]
-    
+
     glosses = ["<sos>", "<eos>", "<pad>"] + glosses[2:]
     gloss_vocab = {word: id for id, word in enumerate(glosses)}
     gloss_id = {id: word for id, word in enumerate(glosses)}
-    
+
     text_vocab = {word: id for id, word in enumerate(texts)}
     text_id = {id: word for id, word in enumerate(texts)}
-    
+
     # Creating Custom ASL Dataset
     print("Creating custom ASL Dataset and Dataloader...\n")
 
-    train_dataset = ASLDataset(
+    train_dataset = TextDataset(
         train["gloss"].tolist(), train["text"].tolist(), gloss_vocab, text_vocab
     )
-    valid_dataset = ASLDataset(
+    valid_dataset = TextDataset(
         valid["gloss"].tolist(), valid["text"].tolist(), gloss_vocab, text_vocab
     )
-    test_dataset = ASLDataset(
+    test_dataset = TextDataset(
         test["gloss"].tolist(), test["text"].tolist(), gloss_vocab, text_vocab
     )
-    
-    train_dataset = ASLDataset(text_train, gloss_train, text_vocab, gloss_vocab)
-    valid_dataset = ASLDataset(text_valid, gloss_valid, text_vocab, gloss_vocab)
-    test_dataset = ASLDataset(text_test, gloss_test, text_vocab, gloss_vocab)
 
     train_dl = DataLoader(
         train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
@@ -253,5 +244,5 @@ def load_phoenix_dataset(batch_size=1, random_state=29, test_size=0.3, reverse=F
     test_dl = DataLoader(
         test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
     )
-    
+
     return train_dl, valid_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id

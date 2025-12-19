@@ -1,0 +1,16 @@
+# Hyperparameters
+epochs: 500
+batch_size: 32
+lr: 1e-4
+eps: 1e-9
+
+# Model settings
+d_model: 512
+heads: 8
+num_encoders: 2
+num_decoders: 2
+dropout: 0.1
+
+# Model save and load paths
+model_name: "gloss_to_english"
+save_path: "src/ml/saved_models"

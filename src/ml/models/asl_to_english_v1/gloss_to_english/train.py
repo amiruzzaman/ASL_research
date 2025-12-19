@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from tqdm import tqdm
+import yaml
 
 from ml.models.asl_to_english_v1.vocab import Vocabulary
 from ml.utils.transformer import (
@@ -38,27 +39,33 @@ class Trainer:
     ):
         self.config = config
 
+        self.model_name = self.config.get("model_name", "best")
+        self.save_path = self.config.get("save_path", "")
+        self.model_path = self.config.get("model_path", None)
+
         self.train_dl = train_dl
         self.valid_dl = valid_dl
         self.test_dl = test_dl
 
-        self.model = model
-        self.optimizer = optimizer
-
         self.src_vocab = src_vocab
         self.trg_vocab = trg_vocab
 
-        self.epochs = 0
+        self.curr_epoch = 0
+        self.epochs = config.get("epochs", 100)
         self.best_bleu = -torch.inf
         self.accuracy_history = []
         self.loss_history = []
 
+        self.model = model
+        self.optimizer = optimizer
         self.criterion = nn.CrossEntropyLoss(ignore_index=trg_vocab.pad_token).to(
             DEVICE
         )
 
         self.bleu_metric = evaluate.load("bleu")
         self.rouge_metric = evaluate.load("rouge")
+
+        self.load()
 
     def train_epoch(self, epoch):
         # Set model to training mode
@@ -76,20 +83,20 @@ class Trainer:
 
             # Create the masks for the source and target
             src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(
-                src, trg_input, self.trg_vocab.pad_token, DEVICE
+                src, trg_input, self.trg_vocab.pad_token
             )
 
             # Feed the inputs through the translation model
             # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model
             # instead of the model's output in the prior timestep
             out = self.model(
-                src,
-                trg_input,
-                src_mask,
-                trg_mask,
-                src_padding_mask,
-                trg_padding_mask,
-                src_padding_mask,
+                src.to(DEVICE),
+                trg_input.to(DEVICE),
+                src_mask.to(DEVICE),
+                trg_mask.to(DEVICE),
+                src_padding_mask.to(DEVICE),
+                trg_padding_mask.to(DEVICE),
+                src_padding_mask.to(DEVICE),
             )
 
             # For the criterion function to work, we have to concatenate all the batches together for it to work
@@ -130,20 +137,20 @@ class Trainer:
 
             # Create the masks for the source and target
             src_mask, trg_mask, src_padding_mask, trg_padding_mask = create_mask(
-                src, trg_input, self.trg_vocab.pad_token, DEVICE
+                src, trg_input, self.trg_vocab.pad_token
             )
 
             # Feed the inputs through the translation model
             # We are using teacher forcing, a strategy feeds the ground truth or the expected target sequence into the model
             # instead of the model's output in the prior timestep
             out = self.model(
-                src,
-                trg_input,
-                src_mask,
-                trg_mask,
-                src_padding_mask,
-                trg_padding_mask,
-                src_padding_mask,
+                src.to(DEVICE),
+                trg_input.to(DEVICE),
+                src_mask.to(DEVICE),
+                trg_mask.to(DEVICE),
+                src_padding_mask.to(DEVICE),
+                trg_padding_mask.to(DEVICE),
+                src_padding_mask.to(DEVICE),
             )
 
             # For the criterion function to work, we have to concatenate all the batches together for it to work
@@ -176,22 +183,12 @@ class Trainer:
         num_tokens = sentence.shape[1]
 
         translated_tokens = self.model.greedy_decode(
-            sentence, src_mask, src_padding_mask
+            sentence.to(DEVICE), src_mask.to(DEVICE), src_padding_mask.to(DEVICE)
         )
 
-        return self.trg_vocab.decode_batch(translated_tokens.to_list())
+        return self.trg_vocab.decode_batch(translated_tokens.tolist())
 
     def train(self):
-        train_dl, valid_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = (
-            load_alsg_dataset(args.batch, reverse=args.reverse)
-        )
-
-        # Creating the translation (Transformer) model
-        EPOCHS = args.epochs
-        curr_epoch = 1
-
-        # If the save data argument is not null, then we load the data to continue training
-
         # Calculate starting performance of the model
         valid_loss, bleu, rouge1, rougeL = self.validate()
 
@@ -199,11 +196,11 @@ class Trainer:
             f"Valid Average loss: {valid_loss:>8f}, BLEU Score: {bleu:.2f}, Rouge-1 Score: {rouge1:.2f}, Rouge-L Score: {rougeL:.2f}\n"
         )
 
-        for epoch in range(curr_epoch, EPOCHS + 1):
+        for epoch in range(self.curr_epoch, self.epochs + 1):
             # Train through the entire training dataset and keep track of total time
             start_time = time.time()
             train_loss = self.train_epoch(epoch)
-            print(f"Training Average loss: {train_loss:>8f}")
+            print(f"Training Average loss: {train_loss:>8f}\n")
 
             # Goes through the validation dataset
             valid_loss, bleu, rouge1, rougeL = self.validate()
@@ -212,11 +209,8 @@ class Trainer:
 
             # If the average loss from testing the validation data is smallest than the best model at that point,
             # Then we save the current model
-            self.save()
+            self.save(epoch, bleu)
             total_time = time.time() - start_time
-
-            print(f"\nEpoch Time: {total_time:.1f} seconds")
-
             print(
                 f"Valid Average loss: {valid_loss:>8f}, BLEU Score: {bleu:.2f}, Rouge-1 Score: {rouge1:.2f}, Rouge-L Score: {rougeL:.2f}\n"
             )
@@ -238,12 +232,14 @@ class Trainer:
                 "accuracy_history": self.accuracy_history,
                 "config": self.config,
             },
-            os.path.join(args.save_path, "best.pt"),
+            os.path.join(self.save_path, f"{self.model_name}.pt"),
         )
 
     def load(self):
-        checkpoint = torch.load(args.model_path, weights_only=False)
+        if not self.model_path:
+            return
 
+        checkpoint = torch.load(self.model_path, weights_only=False)
         self.curr_epoch = checkpoint["epoch"] + 1
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -268,10 +264,12 @@ class Trainer:
         return rouge_results["rouge1"], rouge_results["rougeL"]
 
 
-def create_dataloaders():
-    train_dl, valid_dl, test_dl, gloss_vocab, gloss_id, text_vocab, text_id = (
-        load_alsg_dataset(args.batch, reverse=args.reverse)
+def create_data(config):
+    train_dl, valid_dl, test_dl, gloss_vocab, text_vocab = load_alsg_dataset(
+        config.get("batch_size", 32), reverse=config.get("reverse", False)
     )
+
+    return train_dl, valid_dl, test_dl, gloss_vocab, text_vocab
 
 
 def create_translation_model(
@@ -287,36 +285,36 @@ def create_translation_model(
         dropout=config.get("dropout", 0.1),
     ).to(DEVICE)
 
+    return model
 
-def main():
-    pass
+
+def main(config):
+    train_dl, valid_dl, test_dl, gloss_vocab, text_vocab = create_data(config)
+    model = create_translation_model(config, gloss_vocab, text_vocab)
+
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=float(config.get("lr", 1e-4)),
+        betas=(0.9, 0.98),
+        eps=float(config.get("eps", 1e-9)),
+    )
+
+    trainer = Trainer(
+        config=config,
+        model=model,
+        optimizer=optimizer,
+        train_dl=train_dl,
+        valid_dl=train_dl,
+        test_dl=test_dl,
+        src_vocab=gloss_vocab,
+        trg_vocab=text_vocab,
+    )
+
+    trainer.train()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="ASLGlossModel")
-    
-    # Training procedure
-    parser.add_argument("--reverse", action="store_true")
-    parser.add_argument("-e", "--epochs", type=int, default=1000)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--model_path", type=str, default="src/ml/saved_models/gloss_to_german.pt")
-    parser.add_argument("-b", "--batch", type=int, default=32)
-    parser.add_argument("--adams_ep", type=float, default=1e-9)
-    parser.add_argument("--factor", type=float, default=0.9)
-    parser.add_argument("--patience", type=int, default=10)
-    parser.add_argument("--weight_decay", type=float, default=1e-5)
-        
-    # Translation Model Arguments
-    parser.add_argument("--dmodel", type=int, default=512)
-    parser.add_argument("--heads", type=int, default=8)
-    parser.add_argument("--encoders", type=int, default=2)
-    parser.add_argument("--decoders", type=int, default=2)
-    parser.add_argument("--dropout", type=float, default=0.3)
+    with open(os.path.join("src", "ml", "configs", "gloss_to_english.yaml")) as file:
+        config = yaml.load(file, Loader=yaml.SafeLoader)
 
-    parser.add_argument("--greedy", action="store_true")
-    parser.add_argument("--beam_size", type=int, default=25)
-    parser.add_argument("--save_path", type=str, default="src/ml/saved_models")
-    args = parser.parse_args()
-
-    # Either train the model or use the model
-    train(args)
+    main(config)
